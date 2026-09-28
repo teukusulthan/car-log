@@ -143,20 +143,51 @@ export async function addReading(
 export async function listReadings(householdId: string, vehicleId: string) {
   await assertVehicleInHousehold(householdId, vehicleId);
   return db
-    .select({ id: schema.odometerReadings.id, km: schema.odometerReadings.km, date: schema.odometerReadings.date })
+    .select({
+      id: schema.odometerReadings.id,
+      km: schema.odometerReadings.km,
+      date: schema.odometerReadings.date,
+      serviceRecordId: schema.odometerReadings.serviceRecordId,
+    })
     .from(schema.odometerReadings)
     .where(eq(schema.odometerReadings.vehicleId, vehicleId))
-    .orderBy(desc(schema.odometerReadings.date), desc(schema.odometerReadings.km));
+    .orderBy(desc(schema.odometerReadings.date), desc(schema.odometerReadings.createdAt));
+}
+
+/** Deletes a manually entered reading (e.g. a typo). Readings that belong to a service change with the service. */
+export async function deleteReading(householdId: string, readingId: string) {
+  const [row] = await db
+    .select({ vehicleId: schema.odometerReadings.vehicleId, serviceRecordId: schema.odometerReadings.serviceRecordId })
+    .from(schema.odometerReadings)
+    .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.odometerReadings.vehicleId))
+    .where(and(eq(schema.odometerReadings.id, readingId), eq(schema.vehicles.householdId, householdId)));
+  if (!row) throw new NotFoundError("Reading");
+  if (row.serviceRecordId) throw new Error("This reading belongs to a service; edit the service instead.");
+  const others = await db
+    .select({ id: schema.odometerReadings.id })
+    .from(schema.odometerReadings)
+    .where(eq(schema.odometerReadings.vehicleId, row.vehicleId))
+    .limit(2);
+  if (others.length < 2) throw new Error("Can't delete the only reading for this car.");
+  await db.delete(schema.odometerReadings).where(eq(schema.odometerReadings.id, readingId));
 }
 
 async function readingsFor(vehicleIds: string[]) {
   if (!vehicleIds.length) return new Map<string, Reading[]>();
   const rows = await db
-    .select({ vehicleId: schema.odometerReadings.vehicleId, km: schema.odometerReadings.km, date: schema.odometerReadings.date })
+    .select({
+      vehicleId: schema.odometerReadings.vehicleId,
+      km: schema.odometerReadings.km,
+      date: schema.odometerReadings.date,
+      createdAt: schema.odometerReadings.createdAt,
+    })
     .from(schema.odometerReadings)
     .where(inArray(schema.odometerReadings.vehicleId, vehicleIds));
   const map = new Map<string, Reading[]>();
-  for (const r of rows) map.set(r.vehicleId, [...(map.get(r.vehicleId) ?? []), { km: r.km, date: r.date }]);
+  for (const r of rows) {
+    const reading = { km: r.km, date: r.date, enteredAt: r.createdAt.getTime() };
+    map.set(r.vehicleId, [...(map.get(r.vehicleId) ?? []), reading]);
+  }
   return map;
 }
 

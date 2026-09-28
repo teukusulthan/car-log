@@ -9,13 +9,13 @@ describe("latestReading", () => {
     ]);
     expect(r).toEqual({ km: 9000, date: "2026-09-01" });
   });
-  it("breaks same-day ties with the higher km", () => {
+  it("breaks same-day ties with the reading entered last, so typos can be corrected", () => {
     expect(
       latestReading([
-        { km: 100, date: "2026-09-01" },
-        { km: 150, date: "2026-09-01" },
+        { km: 500000, date: "2026-09-01", enteredAt: 1 },
+        { km: 50100, date: "2026-09-01", enteredAt: 2 },
       ])?.km,
-    ).toBe(150);
+    ).toBe(50100);
   });
   it("returns null with no readings", () => {
     expect(latestReading([])).toBeNull();

@@ -13,6 +13,7 @@ import {
   addReading,
   assertVehicleInHousehold,
   createVehicle,
+  deleteReading,
   deleteVehicle,
   listReadings,
   saveSchedule,
@@ -108,4 +109,15 @@ export async function selectVehicleAction(vehicleId: string) {
   await assertVehicleInHousehold(householdId, vehicleId);
   await rememberVehicle(vehicleId);
   revalidatePath("/", "layout");
+}
+
+export async function deleteReadingAction(readingId: string): Promise<{ ok: boolean; error?: string }> {
+  const { householdId } = await requireMembership();
+  try {
+    await deleteReading(householdId, readingId);
+  } catch (e) {
+    return { ok: false, error: e instanceof NotFoundError ? "That reading no longer exists." : (e as Error).message };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

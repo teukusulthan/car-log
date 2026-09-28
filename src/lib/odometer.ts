@@ -1,15 +1,21 @@
 import { addDays, diffDays, type ISODate } from "./dates";
 
-export type Reading = { km: number; date: ISODate };
+/** `enteredAt` (ms) orders readings taken on the same day: the last one entered wins. */
+export type Reading = { km: number; date: ISODate; enteredAt?: number };
 
 const AVERAGE_WINDOW_DAYS = 180;
 const MIN_SPAN_DAYS = 7;
 
-/** The reading that reflects the car's current state: most recent date, ties broken by higher km. */
+/** The reading that reflects the car's current state: most recent date, then most recently entered. */
 export function latestReading(readings: Reading[]): Reading | null {
   let best: Reading | null = null;
   for (const r of readings) {
-    if (!best || r.date > best.date || (r.date === best.date && r.km > best.km)) best = r;
+    if (!best || r.date > best.date) {
+      best = r;
+    } else if (r.date === best.date) {
+      const newer = (r.enteredAt ?? 0) - (best.enteredAt ?? 0);
+      if (newer > 0 || (newer === 0 && r.km > best.km)) best = r;
+    }
   }
   return best;
 }

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { PageHeader } from "@/components/page-header";
+import { ReadingList } from "@/components/reading-list";
 import { ScheduleEditor } from "@/components/schedule-editor";
 import { VehicleForm } from "@/components/vehicle-form";
 import { todayInJakarta } from "@/lib/dates";
 import { deleteVehicleAction, updateVehicleAction } from "@/server/actions/vehicles";
 import { orNotFound, requireMembership } from "@/server/access";
-import { getVehicleStatus } from "@/server/queries/vehicles";
+import { getVehicleStatus, listReadings } from "@/server/queries/vehicles";
 
 export const metadata: Metadata = { title: "Car settings" };
 
@@ -15,6 +16,7 @@ export default async function VehiclePage({ params }: PageProps<"/vehicles/[id]"
   const { householdId } = await requireMembership();
   const today = todayInJakarta();
   const status = orNotFound(await getVehicleStatus(householdId, id, today));
+  const readings = (await listReadings(householdId, id)).slice(0, 10);
   const { vehicle } = status;
   const schedule = [...status.items].sort((a, b) => a.sort - b.sort);
 
@@ -41,6 +43,13 @@ export default async function VehiclePage({ params }: PageProps<"/vehicles/[id]"
           vehicleId={vehicle.id}
           items={schedule.map(({ id, name, intervalKm, intervalMonths }) => ({ id, name, intervalKm, intervalMonths }))}
         />
+      </section>
+      <section className="mt-10 grid gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Odometer readings</h2>
+          <p className="text-sm text-muted-foreground">Entered a wrong number? Delete it here.</p>
+        </div>
+        <ReadingList readings={readings} />
       </section>
       <section className="mt-10 mb-4 grid gap-3">
         <h2 className="text-lg font-semibold">Danger zone</h2>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SCHEDULE } from "@/lib/maintenance-template";
 import {
   addReading,
+  deleteReading,
   createVehicle,
   deleteVehicle,
   getVehicle,
@@ -128,5 +129,30 @@ describe("baseline", () => {
     await addReading(householdId, id, userId, { km: 3000, date: "2026-05-01" });
     const oil = (await getVehicleStatus(householdId, id, "2026-09-20"))!.items.find((i) => i.name === "Engine oil")!;
     expect(oil.baseline).toEqual({ date: "2026-09-01", km: 5000 });
+  });
+});
+
+describe("odometer corrections", () => {
+  it("a same-day correction replaces a typo, and manual readings can be deleted", async () => {
+    const { householdId, userId, vehicleId } = await makeHousehold({ odometer: 50000, trackedSince: "2026-09-19" });
+    await addReading(householdId, vehicleId, userId, { km: 500000, date: "2026-09-20" });
+    await addReading(householdId, vehicleId, userId, { km: 50100, date: "2026-09-20" });
+    expect((await getVehicleStatus(householdId, vehicleId, "2026-09-20"))?.currentKm).toBe(50100);
+
+    const typo = (await listReadings(householdId, vehicleId)).find((r) => r.km === 500000)!;
+    await deleteReading(householdId, typo.id);
+    expect((await listReadings(householdId, vehicleId)).map((r) => r.km)).not.toContain(500000);
+  });
+
+  it("won't delete another household's reading, a service's reading, or the last reading", async () => {
+    const a = await makeHousehold();
+    const b = await makeHousehold();
+    const [initial] = await listReadings(a.householdId, a.vehicleId);
+    await expect(deleteReading(b.householdId, initial.id)).rejects.toThrow(/not found/);
+    await expect(deleteReading(a.householdId, initial.id)).rejects.toThrow(/only reading/);
+    const { createService } = await import("@/server/queries/services");
+    await createService(a.householdId, a.userId, { vehicleId: a.vehicleId, date: "2026-02-01", odometer: 2000, totalCost: 0, items: [{ label: "x" }] });
+    const serviceReading = (await listReadings(a.householdId, a.vehicleId)).find((r) => r.km === 2000)!;
+    await expect(deleteReading(a.householdId, serviceReading.id)).rejects.toThrow(/service/);
   });
 });

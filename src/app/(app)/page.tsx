@@ -1,6 +1,7 @@
 import { PartyPopperIcon } from "lucide-react";
 import { DocumentRow } from "@/components/document-list";
 import { DueList } from "@/components/due-list";
+import { EnableNotificationsCard } from "@/components/enable-notifications-card";
 import { InstallGuide } from "@/components/install-guide";
 import { OdometerCard } from "@/components/odometer-card";
 import { VehicleHeader } from "@/components/vehicle-header";
@@ -10,8 +11,8 @@ import { orNotFound, requireCurrentVehicle } from "@/server/access";
 import { listDocuments } from "@/server/queries/documents";
 import { getVehicleStatus, listVehicles } from "@/server/queries/vehicles";
 
-export default async function HomePage() {
-  const { householdId, vehicleId } = await requireCurrentVehicle();
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  const { householdId, vehicleId } = await requireCurrentVehicle((await searchParams).vehicle);
   const today = todayInJakarta();
   const [status, vehicles, documents] = await Promise.all([
     getVehicleStatus(householdId, vehicleId, today),
@@ -29,6 +30,7 @@ export default async function HomePage() {
     <div className="grid gap-6">
       <VehicleHeader eyebrow="Your car" vehicles={vehicles} current={vehicle} />
       <InstallGuide />
+      <EnableNotificationsCard />
 
       <OdometerCard
         vehicleId={vehicle.id}

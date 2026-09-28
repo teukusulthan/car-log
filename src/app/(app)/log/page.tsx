@@ -9,13 +9,10 @@ import { getVehicleStatus } from "@/server/queries/vehicles";
 export const metadata: Metadata = { title: "Log service" };
 
 export default async function LogServicePage({ searchParams }: PageProps<"/log">) {
-  const { householdId, vehicleId } = await requireCurrentVehicle();
+  const params = await searchParams;
+  const { householdId, vehicleId } = await requireCurrentVehicle(params.vehicle);
   const today = todayInJakarta();
-  const [status, workshops, params] = await Promise.all([
-    getVehicleStatus(householdId, vehicleId, today),
-    listWorkshops(householdId),
-    searchParams,
-  ]);
+  const [status, workshops] = await Promise.all([getVehicleStatus(householdId, vehicleId, today), listWorkshops(householdId)]);
   const { vehicle, items, currentKm } = orNotFound(status);
 
   return (

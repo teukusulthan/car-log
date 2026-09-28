@@ -37,10 +37,11 @@ export const requireMembership = cache(async (): Promise<Membership> => {
 });
 
 /** Resolves the vehicle the user is looking at: cookie if valid for this household, else the first vehicle. */
-export async function getCurrentVehicleId(householdId: string): Promise<string | null> {
+export async function getCurrentVehicleId(householdId: string, preferred?: string | null): Promise<string | null> {
   const jar = await cookies();
-  const wanted = jar.get(VEHICLE_COOKIE)?.value;
-  if (wanted && /^[0-9a-f-]{36}$/i.test(wanted)) {
+  // An explicit ?vehicle= (e.g. from a notification) wins over the remembered choice.
+  for (const wanted of [preferred, jar.get(VEHICLE_COOKIE)?.value]) {
+    if (!wanted || !/^[0-9a-f-]{36}$/i.test(wanted)) continue;
     const [hit] = await db
       .select({ id: schema.vehicles.id })
       .from(schema.vehicles)
@@ -63,9 +64,9 @@ export function orNotFound<T>(value: T | null | undefined): T {
 }
 
 /** Membership plus the vehicle being viewed; sends households without a car to the add-car screen. */
-export async function requireCurrentVehicle() {
+export async function requireCurrentVehicle(preferred?: string | string[] | null) {
   const membership = await requireMembership();
-  const vehicleId = await getCurrentVehicleId(membership.householdId);
+  const vehicleId = await getCurrentVehicleId(membership.householdId, typeof preferred === "string" ? preferred : null);
   if (!vehicleId) redirect("/vehicles/new?first=1");
   return { ...membership, vehicleId };
 }

@@ -61,9 +61,24 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// In-app navigations fetch RSC payloads, which we don't cache. The page tells us which URL it is
+// showing and we store the full document, so the same screen can be opened offline later.
+async function cachePage(path) {
+  const url = new URL(path, self.location.origin);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  const res = await fetch(url.href, { credentials: "same-origin", headers: { Accept: "text/html" } });
+  if (res.ok && !res.redirected && res.type === "basic") {
+    const cache = await caches.open(PAGE_CACHE);
+    await cache.put(new Request(url.href), res);
+  }
+}
+
 self.addEventListener("message", (event) => {
   if (event.data?.type === "CLEAR_USER_CACHE") {
     event.waitUntil(caches.delete(PAGE_CACHE));
+  }
+  if (event.data?.type === "CACHE_PAGE" && typeof event.data.url === "string") {
+    event.waitUntil(cachePage(event.data.url).catch(() => {}));
   }
 });
 

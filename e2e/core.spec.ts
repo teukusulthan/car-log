@@ -12,11 +12,13 @@ test("a new user tracks a car from sign-up to reminders", async ({ page }) => {
 
   // Home shows the seeded schedule; oil is overdue after 200 days
   await expect(page.getByRole("heading", { name: "Toyota Avanza" })).toBeVisible();
-  const attention = page.getByRole("region", { name: "Needs attention" });
-  await expect(attention.getByText("Engine oil")).toBeVisible();
+  // The most urgent item is spotlighted, with the rest listed under "Needs attention".
+  const nextUp = page.getByRole("region", { name: "Next service" });
+  await expect(nextUp.getByRole("heading", { name: "Engine oil" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Needs attention" }).getByText("Oil filter")).toBeVisible();
 
-  // Log an oil change from the overdue row
-  await attention.getByRole("link", { name: /Engine oil/ }).click();
+  // Log the oil change from the spotlight
+  await nextUp.getByRole("link", { name: /Log engine oil/ }).click();
   await expect(page).toHaveURL(/\/log\?item=/);
   await expect(page.getByRole("button", { name: "Engine oil", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByLabel("Odometer (km)").fill("9800");
@@ -35,8 +37,10 @@ test("a new user tracks a car from sign-up to reminders", async ({ page }) => {
   await page.getByLabel("Kilometres").fill("9000");
   await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("dialog").getByText(/lower than a previous reading/)).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Yes, save it" })).toBeVisible();
+  // Correcting the number withdraws the "save anyway" confirmation.
   await page.getByRole("dialog").getByLabel("Kilometres").fill("10200");
-  await page.getByRole("dialog").getByRole("button", { name: "Yes, save it" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Odometer updated to 10.200 km")).toBeVisible();
 
   // History shows the visit and the spend

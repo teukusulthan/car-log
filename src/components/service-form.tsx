@@ -1,12 +1,15 @@
 "use client";
 
-import { CheckIcon, PlusIcon, XIcon } from "lucide-react";
+import { CalendarDaysIcon, CheckIcon, PlusIcon, ReceiptTextIcon, WalletIcon, WrenchIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FormField, fieldAria } from "@/components/form-field";
 import { ExistingPhotos } from "@/components/existing-photos";
 import { FormMessage } from "@/components/form-message";
+import { FormSection } from "@/components/form-section";
+import { MaintenanceIcon } from "@/components/maintenance-icon";
+import { StickyActions } from "@/components/sticky-actions";
 import { MoneyInput } from "@/components/money-input";
 import { PhotoPicker } from "@/components/photo-picker";
 import { SubmitButton } from "@/components/submit-button";
@@ -14,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { DueStatus } from "@/lib/due";
-import { formatIDR } from "@/lib/format";
+import { addDays } from "@/lib/dates";
+import { formatIDR, formatKm } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { type ServiceFormState, saveServiceAction } from "@/server/actions/services";
 
@@ -67,6 +71,8 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
   const [withdrawnFor, setWithdrawnFor] = useState<ServiceFormState | null>(null);
   const confirmed = Boolean(state.needsConfirm) && withdrawnFor !== state;
   const withdrawConfirmation = () => setWithdrawnFor(state);
+  const [date, setDate] = useState(defaults.date);
+  const [odometer, setOdometer] = useState(String(defaults.odometer));
 
   const itemsSum = useMemo(() => lines.reduce((sum, l) => sum + (Number(l.cost) || 0), 0), [lines]);
   const effectiveTotal = totalTouched ? total : itemsSum ? String(itemsSum) : "";
@@ -90,13 +96,13 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
   const payload = JSON.stringify(
     lines.map((l) => ({ maintenanceItemId: l.maintenanceItemId, label: l.label.trim(), cost: l.cost ? Number(l.cost) : null })),
   );
-  const customLines = lines.filter((l) => !l.maintenanceItemId);
-  const scheduledLines = lines.filter((l) => l.maintenanceItemId);
+  const yesterday = addDays(today, -1);
+  const selectedCount = lines.length;
 
   return (
     <form
       action={formAction}
-      className="grid gap-6"
+      className="grid gap-4"
       noValidate
       onSubmit={(ev) => {
         if (!navigator.onLine) {
@@ -111,17 +117,66 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
       {confirmed && <input type="hidden" name="confirm" value="1" />}
       <FormMessage state={state.needsConfirm ? {} : state} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField id="date" label="Date" error={e.date}>
-          <Input {...fieldAria("date", e.date)} type="date" max={today} defaultValue={v.date ?? defaults.date} onChange={withdrawConfirmation} required />
-        </FormField>
-        <FormField id="odometer" label="Odometer (km)" error={e.odometer}>
-          <Input {...fieldAria("odometer", e.odometer)} inputMode="numeric" defaultValue={v.odometer ?? defaults.odometer} onChange={withdrawConfirmation} required />
-        </FormField>
-      </div>
+      <FormSection title="When" icon={CalendarDaysIcon} index={0}>
+        <div className="flex gap-2" role="group" aria-label="Pick today or yesterday">
+          {[
+            { label: "Today", value: today },
+            { label: "Yesterday", value: yesterday },
+          ].map((d) => (
+            <button
+              key={d.label}
+              type="button"
+              aria-pressed={date === d.value}
+              onClick={() => {
+                setDate(d.value);
+                withdrawConfirmation();
+              }}
+              className={cn(
+                "pressable h-9 rounded-full px-4 text-sm font-medium",
+                date === d.value ? "bg-foreground text-background" : "bg-muted text-foreground",
+              )}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField id="date" label="Date" error={e.date}>
+            <Input
+              {...fieldAria("date", e.date)}
+              type="date"
+              max={today}
+              value={date}
+              onChange={(ev) => {
+                setDate(ev.target.value);
+                withdrawConfirmation();
+              }}
+              required
+            />
+          </FormField>
+          <FormField id="odometer" label="Odometer (km)" error={e.odometer}>
+            <Input
+              {...fieldAria("odometer", e.odometer)}
+              inputMode="numeric"
+              value={odometer}
+              onChange={(ev) => {
+                setOdometer(ev.target.value);
+                withdrawConfirmation();
+              }}
+              className="tabular-nums"
+              required
+            />
+          </FormField>
+        </div>
+        {!recordId && <p className="-mt-2 text-xs text-muted-foreground">Last reading: {formatKm(defaults.odometer)}</p>}
+      </FormSection>
 
-      <fieldset className="grid gap-3">
-        <legend className="mb-1 font-semibold">What was done?</legend>
+      <FormSection
+        title="What was done?"
+        icon={WrenchIcon}
+        description={selectedCount ? `${selectedCount} selected` : "Tap everything the workshop did"}
+        index={1}
+      >
         <div className="flex flex-wrap gap-2" role="group" aria-label="Scheduled maintenance">
           {items.map((item) => {
             const selected = lines.some((l) => l.maintenanceItemId === item.id);
@@ -132,28 +187,37 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
                 aria-pressed={selected}
                 onClick={() => toggle(item)}
                 className={cn(
-                  "flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors",
-                  selected ? "border-primary bg-primary text-primary-foreground" : "bg-card active:bg-muted",
+                  "pressable flex min-h-11 items-center gap-2 rounded-2xl border py-1.5 pr-3.5 pl-1.5 text-sm font-medium transition-colors",
+                  selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background",
                 )}
               >
-                {selected && <CheckIcon className="size-4" aria-hidden />}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-xl transition-colors",
+                    selected ? "bg-white/20" : "bg-muted",
+                  )}
+                >
+                  {selected ? <CheckIcon className="size-4" /> : <MaintenanceIcon name={item.name} className="size-8 rounded-xl bg-transparent" />}
+                </span>
                 {item.name}
                 {!selected && item.status !== "ok" && (
-                  <span
-                    aria-label={item.status === "overdue" ? "overdue" : "due soon"}
-                    className={cn("size-2 rounded-full", item.status === "overdue" ? "bg-overdue" : "bg-due-soon")}
-                  />
+                  <span aria-hidden className={cn("size-2 rounded-full", item.status === "overdue" ? "bg-overdue" : "bg-due-soon")} />
                 )}
               </button>
             );
           })}
         </div>
-        {e.items && <p role="alert" className="text-sm text-destructive">{e.items}</p>}
+        {e.items && (
+          <p role="alert" className="text-sm text-destructive">
+            {e.items}
+          </p>
+        )}
 
-        {(scheduledLines.length > 0 || customLines.length > 0) && (
-          <ul className="grid gap-2 rounded-2xl border bg-card p-3">
+        {lines.length > 0 && (
+          <ul className="grid gap-2">
             {lines.map((line) => (
-              <li key={line.key} className="flex items-center gap-2">
+              <li key={line.key} className="rise-in flex items-center gap-2 rounded-2xl bg-muted/60 p-1.5 pl-3">
                 {line.maintenanceItemId ? (
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{line.label}</span>
                 ) : (
@@ -163,6 +227,7 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
                     value={line.label}
                     onChange={(ev) => updateLine(line.key, { label: ev.target.value })}
                     className="h-10 flex-1"
+                    autoFocus
                   />
                 )}
                 <MoneyInput
@@ -188,61 +253,92 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
         <Button
           type="button"
           variant="outline"
+          className="rounded-2xl border-dashed"
           onClick={() => setLines((ls) => [...ls, { key: key(), maintenanceItemId: null, label: "", cost: "" }])}
         >
           <PlusIcon /> Add other work
         </Button>
-      </fieldset>
+      </FormSection>
 
-      <FormField id="workshop" label="Workshop" error={e.workshop}>
-        <Input
-          {...fieldAria("workshop", e.workshop)}
-          list="workshop-options"
-          autoComplete="off"
-          placeholder="e.g. Auto2000 Sunter"
-          defaultValue={v.workshop ?? defaults.workshop ?? ""}
-        />
-        <datalist id="workshop-options">
-          {workshops.map((w) => (
-            <option key={w} value={w} />
-          ))}
-        </datalist>
-      </FormField>
-
-      <FormField
-        id="totalCostDisplay"
-        label="Total paid"
-        error={e.totalCost}
-        hint={!totalTouched && itemsSum > 0 ? `Sum of item costs (${formatIDR(itemsSum)}). Edit if the bill was different.` : undefined}
-      >
-        <MoneyInput
+      <FormSection title="Where & how much" icon={WalletIcon} index={2}>
+        <FormField id="workshop" label="Workshop" error={e.workshop}>
+          <Input
+            {...fieldAria("workshop", e.workshop)}
+            list="workshop-options"
+            autoComplete="off"
+            placeholder="e.g. Auto2000 Sunter"
+            defaultValue={v.workshop ?? defaults.workshop ?? ""}
+          />
+          <datalist id="workshop-options">
+            {workshops.map((w) => (
+              <option key={w} value={w} />
+            ))}
+          </datalist>
+        </FormField>
+        {workshops.length > 0 && (
+          <div className="-mt-1 flex flex-wrap gap-1.5" aria-label="Recently used">
+            {workshops.slice(0, 3).map((w) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById("workshop") as HTMLInputElement | null;
+                  if (input) input.value = w;
+                }}
+                className="pressable h-8 rounded-full bg-muted px-3 text-xs font-medium"
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        )}
+        <FormField
           id="totalCostDisplay"
-          value={effectiveTotal}
-          placeholder="0"
-          onValueChange={(digits) => {
-            setTotalTouched(true);
-            setTotal(digits);
-          }}
-        />
-      </FormField>
+          label="Total paid"
+          error={e.totalCost}
+          hint={!totalTouched && itemsSum > 0 ? "Adds up the item costs. Edit it if the bill was different." : undefined}
+        >
+          <MoneyInput
+            id="totalCostDisplay"
+            value={effectiveTotal}
+            placeholder="0"
+            onValueChange={(digits) => {
+              setTotalTouched(true);
+              setTotal(digits);
+            }}
+            className="text-lg font-semibold"
+          />
+        </FormField>
+      </FormSection>
 
-      <div className="grid gap-2">
-        <PhotoPicker name="photos" label="Receipt photos" existingCount={savedPhotoCount} />
-        {defaults.photos && <ExistingPhotos photos={defaults.photos} onCountChange={setSavedPhotoCount} />}
-      </div>
-
-      <FormField id="notes" label="Notes" error={e.notes}>
-        <Textarea {...fieldAria("notes", e.notes)} rows={3} placeholder="Anything worth remembering" defaultValue={v.notes ?? defaults.notes ?? ""} />
-      </FormField>
+      <FormSection title="Receipt & notes" icon={ReceiptTextIcon} index={3}>
+        <div className="grid gap-2">
+          <PhotoPicker name="photos" label="Receipt photos" existingCount={savedPhotoCount} />
+          {defaults.photos && <ExistingPhotos photos={defaults.photos} onCountChange={setSavedPhotoCount} />}
+        </div>
+        <FormField id="notes" label="Notes" error={e.notes}>
+          <Textarea {...fieldAria("notes", e.notes)} rows={3} placeholder="Anything worth remembering" defaultValue={v.notes ?? defaults.notes ?? ""} />
+        </FormField>
+      </FormSection>
 
       {state.needsConfirm && confirmed && (
-        <p role="alert" className="rounded-lg bg-due-soon/15 px-3 py-2.5 text-sm">
+        <p role="alert" className="rise-in rounded-2xl bg-due-soon/20 px-4 py-3 text-sm font-medium">
           {state.message}
         </p>
       )}
-      <SubmitButton size="lg" pendingText="Saving…">
-        {state.needsConfirm && confirmed ? "Yes, save it" : recordId ? "Save changes" : "Save service"}
-      </SubmitButton>
+
+      <StickyActions
+        summary={
+          <div className="leading-tight">
+            <p className="text-xs text-muted-foreground">{selectedCount ? `${selectedCount} item${selectedCount === 1 ? "" : "s"}` : "Nothing selected"}</p>
+            <p className="truncate font-semibold tabular-nums">{formatIDR(Number(effectiveTotal) || 0)}</p>
+          </div>
+        }
+      >
+        <SubmitButton size="lg" className="rounded-2xl px-6" pendingText="Saving…">
+          {state.needsConfirm && confirmed ? "Yes, save it" : recordId ? "Save changes" : "Save service"}
+        </SubmitButton>
+      </StickyActions>
     </form>
   );
 }

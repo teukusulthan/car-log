@@ -1,11 +1,14 @@
 "use client";
 
+import { BellRingIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExistingPhotos } from "@/components/existing-photos";
 import { FormField, fieldAria } from "@/components/form-field";
 import { FormMessage } from "@/components/form-message";
+import { FormSection } from "@/components/form-section";
+import { StickyActions } from "@/components/sticky-actions";
 import { PhotoPicker } from "@/components/photo-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -67,57 +70,80 @@ export function DocumentForm({
   const remindOptions = REMIND_OPTIONS.includes(remindDefault) ? REMIND_OPTIONS : [...REMIND_OPTIONS, remindDefault].sort((a, b) => a - b);
 
   return (
-    <form action={action} className="grid gap-5" noValidate>
+    <form action={action} className="grid gap-4" noValidate>
       <FormMessage state={state} />
-      {vehicles.length > 1 ? (
-        <FormField id="vehicleId" label="Car">
-          <NativeSelect id="vehicleId" name="vehicleId" defaultValue={v.vehicleId ?? defaults.vehicleId}>
-            {vehicles.map((car) => (
-              <option key={car.id} value={car.id}>
-                {car.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </FormField>
-      ) : (
-        <input type="hidden" name="vehicleId" value={defaults.vehicleId} />
-      )}
-      <FormField id="type" label="Type">
-        <NativeSelect id="type" name="type" value={type} onChange={(ev) => onTypeChange(ev.target.value as DocumentType)}>
+      <FormSection title="Document" icon={FileTextIcon} index={0}>
+        {vehicles.length > 1 ? (
+          <FormField id="vehicleId" label="Car">
+            <NativeSelect id="vehicleId" name="vehicleId" defaultValue={v.vehicleId ?? defaults.vehicleId}>
+              {vehicles.map((car) => (
+                <option key={car.id} value={car.id}>
+                  {car.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
+        ) : (
+          <input type="hidden" name="vehicleId" value={defaults.vehicleId} />
+        )}
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Type">
           {Object.entries(DOCUMENT_PRESETS).map(([value, p]) => (
-            <option key={value} value={value}>
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={type === value}
+              onClick={() => onTypeChange(value as DocumentType)}
+              className={
+                "pressable h-10 rounded-full px-4 text-sm font-medium transition-colors " +
+                (type === value ? "bg-foreground text-background" : "bg-muted text-foreground")
+              }
+            >
               {p.label}
-            </option>
+            </button>
           ))}
-        </NativeSelect>
-      </FormField>
-      <FormField id="title" label="Name" error={e.title}>
-        <Input {...fieldAria("title", e.title)} ref={titleRef} defaultValue={v.title ?? defaults.title} placeholder="e.g. KIR inspection" required />
-      </FormField>
-      <div className="grid grid-cols-2 gap-3">
-        <FormField id="expiresOn" label="Expires on" error={e.expiresOn}>
-          <Input {...fieldAria("expiresOn", e.expiresOn)} type="date" defaultValue={v.expiresOn ?? defaults.expiresOn} required />
+        </div>
+        <input type="hidden" name="type" value={type} />
+        <FormField id="title" label="Name" error={e.title}>
+          <Input {...fieldAria("title", e.title)} ref={titleRef} defaultValue={v.title ?? defaults.title} placeholder="e.g. KIR inspection" required />
         </FormField>
-        <FormField id="remindDaysBefore" label="Remind me" error={e.remindDaysBefore}>
-          <NativeSelect id="remindDaysBefore" name="remindDaysBefore" ref={remindRef} defaultValue={remindDefault}>
-            {remindOptions.map((d) => (
-              <option key={d} value={d}>
-                {d} days before
-              </option>
-            ))}
-          </NativeSelect>
+      </FormSection>
+      <FormSection title="Expiry & reminder" icon={BellRingIcon} index={1}>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField id="expiresOn" label="Expires on" error={e.expiresOn}>
+            <Input {...fieldAria("expiresOn", e.expiresOn)} type="date" defaultValue={v.expiresOn ?? defaults.expiresOn} required />
+          </FormField>
+          <FormField id="remindDaysBefore" label="Remind me" error={e.remindDaysBefore}>
+            <NativeSelect id="remindDaysBefore" name="remindDaysBefore" ref={remindRef} defaultValue={remindDefault}>
+              {remindOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d} days before
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
+        </div>
+      </FormSection>
+      <FormSection title="Photos & notes" icon={ImageIcon} index={2}>
+        <div className="grid gap-2">
+          <PhotoPicker name="photos" label="Photos (policy, STNK…)" existingCount={savedPhotos} />
+          {defaults.photos && <ExistingPhotos photos={defaults.photos} onCountChange={setSavedPhotos} />}
+        </div>
+        <FormField id="notes" label="Notes" error={e.notes}>
+          <Textarea {...fieldAria("notes", e.notes)} rows={3} placeholder="Policy number, agent contact…" defaultValue={v.notes ?? defaults.notes ?? ""} />
         </FormField>
-      </div>
-      <div className="grid gap-2">
-        <PhotoPicker name="photos" label="Photos (policy, STNK…)" existingCount={savedPhotos} />
-        {defaults.photos && <ExistingPhotos photos={defaults.photos} onCountChange={setSavedPhotos} />}
-      </div>
-      <FormField id="notes" label="Notes" error={e.notes}>
-        <Textarea {...fieldAria("notes", e.notes)} rows={3} placeholder="Policy number, agent contact…" defaultValue={v.notes ?? defaults.notes ?? ""} />
-      </FormField>
-      <SubmitButton size="lg" pendingText="Saving…">
-        {documentId ? "Save changes" : "Add document"}
-      </SubmitButton>
+      </FormSection>
+      {documentId ? (
+        <SubmitButton size="lg" className="rounded-2xl" pendingText="Saving…">
+          Save changes
+        </SubmitButton>
+      ) : (
+        <StickyActions>
+          <SubmitButton size="lg" className="w-full rounded-2xl" pendingText="Saving…">
+            Add document
+          </SubmitButton>
+        </StickyActions>
+      )}
     </form>
   );
 }

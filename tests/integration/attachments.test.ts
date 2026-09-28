@@ -96,3 +96,20 @@ describe("cleanup", () => {
     expect((await getService(a.householdId, id))?.attachments).toHaveLength(0);
   });
 });
+
+describe("vehicle deletion", () => {
+  it("returns the storage keys of the car's service and document photos", async () => {
+    const { deleteVehicle } = await import("@/server/queries/vehicles");
+    const { createDocument } = await import("@/server/queries/documents");
+    const h = await makeHousehold();
+    const id = await serviceFor(h);
+    await saveAttachments(h.householdId, { serviceRecordId: id }, [jpeg()]);
+    const docId = await createDocument(h.householdId, {
+      vehicleId: h.vehicleId, type: "insurance", title: "Ins", expiresOn: "2027-01-01", remindDaysBefore: 30,
+    });
+    await saveAttachments(h.householdId, { documentId: docId }, [jpeg("policy.jpg")]);
+    const keys = await deleteVehicle(h.householdId, h.vehicleId);
+    expect(keys).toHaveLength(2);
+    for (const key of keys) expect(key.startsWith(`${h.householdId}/`)).toBe(true);
+  });
+});

@@ -95,9 +95,25 @@ export async function updateVehicle(householdId: string, vehicleId: string, inpu
     .where(eq(schema.vehicles.id, vehicleId));
 }
 
-export async function deleteVehicle(householdId: string, vehicleId: string) {
-  await assertVehicleInHousehold(householdId, vehicleId);
-  await db.delete(schema.vehicles).where(eq(schema.vehicles.id, vehicleId));
+/** Deletes the car and everything under it; returns storage keys of its photos so callers can remove the files. */
+export async function deleteVehicle(householdId: string, vehicleId: string): Promise<string[]> {
+  return db.transaction(async (tx) => {
+    await assertVehicleInHousehold(householdId, vehicleId, tx);
+    const [servicePhotos, documentPhotos] = await Promise.all([
+      tx
+        .select({ key: schema.attachments.storageKey })
+        .from(schema.attachments)
+        .innerJoin(schema.serviceRecords, eq(schema.serviceRecords.id, schema.attachments.serviceRecordId))
+        .where(eq(schema.serviceRecords.vehicleId, vehicleId)),
+      tx
+        .select({ key: schema.attachments.storageKey })
+        .from(schema.attachments)
+        .innerJoin(schema.documents, eq(schema.documents.id, schema.attachments.documentId))
+        .where(eq(schema.documents.vehicleId, vehicleId)),
+    ]);
+    await tx.delete(schema.vehicles).where(eq(schema.vehicles.id, vehicleId));
+    return [...servicePhotos, ...documentPhotos].map((p) => p.key);
+  });
 }
 
 /** Replaces the vehicle's schedule with `items`: updates matching ids, inserts new ones, deletes the rest. */

@@ -19,6 +19,7 @@ import {
   saveSchedule,
   updateVehicle,
 } from "@/server/queries/vehicles";
+import { removeStoredFiles } from "@/server/storage";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -55,7 +56,8 @@ export async function updateVehicleAction(vehicleId: string, _prev: ActionState,
 
 export async function deleteVehicleAction(vehicleId: string) {
   const { householdId } = await requireMembership();
-  await deleteVehicle(householdId, vehicleId);
+  const photoKeys = await deleteVehicle(householdId, vehicleId);
+  await removeStoredFiles(photoKeys);
   (await cookies()).delete(VEHICLE_COOKIE);
   revalidatePath("/", "layout");
   redirect("/settings");

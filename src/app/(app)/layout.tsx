@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <OfflineBanner />
-      <main className="flex-1 px-4 pt-safe pb-[calc(env(safe-area-inset-bottom)+6rem)]">{children}</main>
+      <main className="flex-1 px-5 pt-safe pb-[calc(env(safe-area-inset-bottom)+7.5rem)]">{children}</main>
       <BottomNav />
       <Suspense>
         <OfflinePageCache />

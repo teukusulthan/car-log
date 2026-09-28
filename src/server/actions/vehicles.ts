@@ -98,7 +98,7 @@ export async function updateOdometerAction(_prev: OdometerState, formData: FormD
     return {
       needsConfirm: true,
       message: `That's lower than a previous reading (${formatKm(highest)}). Save it anyway?`,
-      values: { km: String(km) },
+      values: { km: String(formData.get("km") ?? "") },
     };
   }
   await addReading(householdId, vehicleId, user.id, { km, date: today });

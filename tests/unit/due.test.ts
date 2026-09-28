@@ -93,3 +93,23 @@ describe("compareDue", () => {
     expect([ok, soon, late, later].sort(compareDue)).toEqual([later, late, soon, ok]);
   });
 });
+
+describe("dueProgress", () => {
+  it("is the larger of the km and time fractions used, from 0 upward", async () => {
+    const { dueProgress } = await import("@/lib/due");
+    const item = { intervalKm: 10000, intervalMonths: 6, baseline: { date: "2026-03-20", km: 10000 } };
+    // 3 months of 6 (≈0.5), 7,500 km of 10,000 (0.75)
+    expect(dueProgress(item, { today: "2026-06-20", currentKm: 17500 })).toBeCloseTo(0.75, 2);
+    // time dominates
+    expect(dueProgress(item, { today: "2026-08-20", currentKm: 11000 })).toBeCloseTo(0.84, 1);
+  });
+  it("can exceed 1 when overdue and is 0 with no interval", async () => {
+    const { dueProgress } = await import("@/lib/due");
+    expect(dueProgress({ intervalKm: 1000, intervalMonths: null, baseline: { date: "2026-01-01", km: 0 } }, { today: "2026-01-02", currentKm: 1500 })).toBe(1.5);
+    expect(dueProgress({ intervalKm: null, intervalMonths: null, baseline: { date: "2026-01-01", km: 0 } }, { today: "2026-09-01", currentKm: 9 })).toBe(0);
+  });
+  it("never goes negative for back-dated baselines", async () => {
+    const { dueProgress } = await import("@/lib/due");
+    expect(dueProgress({ intervalKm: 1000, intervalMonths: 1, baseline: { date: "2026-10-01", km: 5000 } }, { today: "2026-09-01", currentKm: 4000 })).toBe(0);
+  });
+});

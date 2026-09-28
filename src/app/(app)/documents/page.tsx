@@ -45,7 +45,7 @@ export default async function DocumentsPage() {
           {attention.length > 0 && (
             <section className="grid gap-2">
               <h2 className="text-lg font-semibold">Needs renewal</h2>
-              <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+              <ul className="grid gap-3">
                 {attention.map((d) => (
                   <DocumentRow key={d.id} doc={d} showVehicle={vehicles.length > 1} />
                 ))}
@@ -55,7 +55,7 @@ export default async function DocumentsPage() {
           {rest.length > 0 && (
             <section className="grid gap-2">
               <h2 className="text-lg font-semibold">Valid</h2>
-              <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+              <ul className="grid gap-3">
                 {rest.map((d) => (
                   <DocumentRow key={d.id} doc={d} showVehicle={vehicles.length > 1} />
                 ))}

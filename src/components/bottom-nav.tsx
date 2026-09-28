@@ -12,12 +12,16 @@ const TABS = [
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
+/** Screens with their own sticky save bar hide the dock to give the form room. */
+const FORM_ROUTES = [/^\/log$/, /^\/history\/[^/]+\/edit$/, /^\/documents\/new$/, /^\/vehicles\/new$/];
+
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function BottomNav() {
   const pathname = usePathname();
+  if (FORM_ROUTES.some((r) => r.test(pathname))) return null;
   const [left, right] = [TABS.slice(0, 2), TABS.slice(2)];
 
   const tab = ({ href, label, icon: Icon }: (typeof TABS)[number]) => {
@@ -27,34 +31,32 @@ export function BottomNav() {
         key={href}
         href={href}
         aria-current={active ? "page" : undefined}
-        className={cn(
-          "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
-          active ? "text-primary" : "text-muted-foreground",
-        )}
+        className="pressable group flex h-full flex-1 flex-col items-center justify-center gap-0.5"
       >
-        <Icon className="size-6" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
-        {label}
+        <span
+          className={cn(
+            "flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-200",
+            active ? "bg-primary/12 text-primary" : "text-muted-foreground",
+          )}
+        >
+          <Icon className="size-[22px]" strokeWidth={active ? 2.4 : 1.9} aria-hidden />
+        </span>
+        <span className={cn("text-[11px] font-medium", active ? "text-foreground" : "text-muted-foreground")}>{label}</span>
       </Link>
     );
   };
 
   return (
-    <nav
-      aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-safe backdrop-blur-lg supports-[backdrop-filter]:bg-background/75"
-    >
-      <div className="mx-auto flex max-w-md items-stretch px-2">
+    <nav aria-label="Main" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+      <div className="pointer-events-auto mx-auto flex h-[68px] max-w-md items-center rounded-[28px] bg-card/85 px-1.5 shadow-lift ring-1 ring-border backdrop-blur-xl">
         {left.map(tab)}
         <div className="flex flex-1 items-center justify-center">
           <Link
             href="/log"
             aria-label="Log a service"
-            className={cn(
-              "-mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-95",
-              pathname === "/log" && "opacity-60",
-            )}
+            className="pressable flex size-[52px] items-center justify-center rounded-[20px] bg-primary text-primary-foreground shadow-[0_8px_20px_-6px] shadow-primary/60"
           >
-            <PlusIcon className="size-7" strokeWidth={2.25} aria-hidden />
+            <PlusIcon className="size-7" strokeWidth={2.4} aria-hidden />
           </Link>
         </div>
         {right.map(tab)}

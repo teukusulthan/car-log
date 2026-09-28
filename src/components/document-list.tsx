@@ -1,7 +1,8 @@
-import { ChevronRightIcon, FileTextIcon, ShieldCheckIcon } from "lucide-react";
+import { ChevronRightIcon, FileTextIcon, LandmarkIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { DocumentListItem } from "@/server/queries/documents";
 
 export function describeRenewal({ status, daysLeft }: DocumentListItem["renewal"]) {
@@ -12,28 +13,40 @@ export function describeRenewal({ status, daysLeft }: DocumentListItem["renewal"
   return `Valid for ${Math.round(daysLeft / 30)} more months`;
 }
 
-export function DocumentRow({ doc, showVehicle }: { doc: DocumentListItem; showVehicle?: boolean }) {
-  const Icon = doc.type === "insurance" ? ShieldCheckIcon : FileTextIcon;
+export function documentIcon(type: DocumentListItem["type"]) {
+  return type === "insurance" ? ShieldCheckIcon : type === "other" ? FileTextIcon : LandmarkIcon;
+}
+
+export function DocumentRow({ doc, showVehicle, index = 0 }: { doc: DocumentListItem; showVehicle?: boolean; index?: number }) {
+  const Icon = documentIcon(doc.type);
+  const { status, daysLeft } = doc.renewal;
+  const tone =
+    status === "expired" ? "bg-overdue/12 text-overdue" : status === "due_soon" ? "bg-due-soon/20 text-due-soon-foreground dark:text-due-soon" : "bg-muted text-muted-foreground";
   return (
-    <li>
-      <Link href={`/documents/${doc.id}`} className="flex items-center gap-3 px-4 py-3.5 active:bg-muted">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-          <Icon className="size-5 text-muted-foreground" aria-hidden />
-        </div>
+    <li className="rise-in" style={{ ["--i" as string]: index }}>
+      <Link href={`/documents/${doc.id}`} className="pressable flex items-center gap-3.5 rounded-3xl bg-card p-4 shadow-soft active:bg-muted/60">
+        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-[14px]", tone)} aria-hidden>
+          <Icon className="size-5" />
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate font-medium">{doc.title}</p>
-            {doc.renewal.status !== "ok" && <StatusBadge tone={doc.renewal.status} />}
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate font-semibold">{doc.title}</p>
+            {status !== "ok" && <StatusBadge tone={status} />}
           </div>
-          <p className={doc.renewal.status === "ok" ? "text-sm text-muted-foreground" : "text-sm font-medium"}>
-            {describeRenewal(doc.renewal)}
-          </p>
+          <p className={status === "ok" ? "text-sm text-muted-foreground" : "text-sm font-medium"}>{describeRenewal(doc.renewal)}</p>
           <p className="truncate text-xs text-muted-foreground">
             {formatDate(doc.expiresOn)}
             {showVehicle && ` · ${doc.vehicleName}`}
           </p>
         </div>
-        <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+        {status !== "ok" && daysLeft >= 0 ? (
+          <span className="grid shrink-0 place-items-center text-center">
+            <span className="text-2xl leading-none font-semibold tabular-nums">{daysLeft}</span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase">days</span>
+          </span>
+        ) : (
+          <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground/70" aria-hidden />
+        )}
       </Link>
     </li>
   );

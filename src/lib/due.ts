@@ -66,3 +66,20 @@ function urgencyDays(r: DueResult): number {
 export function compareDue(a: DueResult, b: DueResult): number {
   return STATUS_RANK[a.status] - STATUS_RANK[b.status] || urgencyDays(a) - urgencyDays(b);
 }
+
+/**
+ * How much of the service interval has been used (0 = just done, 1 = due now, >1 = overdue),
+ * taking whichever of the km or time limits is further along. Drives the progress bars.
+ */
+export function dueProgress(
+  item: { intervalKm: number | null; intervalMonths: number | null; baseline: { date: ISODate; km: number } },
+  ctx: { today: ISODate; currentKm: number },
+): number {
+  const fractions: number[] = [0];
+  if (item.intervalKm) fractions.push((ctx.currentKm - item.baseline.km) / item.intervalKm);
+  if (item.intervalMonths) {
+    const span = diffDays(item.baseline.date, addMonths(item.baseline.date, item.intervalMonths));
+    fractions.push(diffDays(item.baseline.date, ctx.today) / span);
+  }
+  return Math.max(...fractions);
+}

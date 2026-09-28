@@ -67,3 +67,14 @@ export const serviceFormSchema = z.object({
   ),
   confirm: z.string().optional(),
 });
+
+export const documentFormSchema = z.object({
+  vehicleId: z.uuid(),
+  type: z.enum(["insurance", "stnk_annual", "stnk_5yr", "other"]),
+  title: z.string().trim().min(1, "Give it a name").max(80),
+  expiresOn: isoDate(),
+  remindDaysBefore: z.coerce.number().int().min(0, "Must be 0 or more").max(365, "At most 365 days"),
+  notes: optionalText(1000),
+});
+
+export const renewSchema = z.object({ expiresOn: isoDate() });

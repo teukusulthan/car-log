@@ -15,6 +15,13 @@
       "when": 1790585367025,
       "tag": "0001_faithful_agent_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790617958955,
+      "tag": "0002_nasty_marvel_apes",
+      "breakpoints": true
     }
   ]
 }

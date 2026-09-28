@@ -1,0 +1,2 @@
+ALTER TABLE "verificationToken" ADD COLUMN "attempts" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "verificationToken" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;

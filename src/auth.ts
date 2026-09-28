@@ -7,16 +7,20 @@ import {
   normalizeEmail,
 } from "@/lib/auth-utils";
 import { sendLoginEmail } from "@/server/login-email";
+import { hardenAdapter } from "@/server/verification-tokens";
 
 export const EMAIL_PROVIDER_ID = "email";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: schema.users,
-    accountsTable: schema.accounts,
-    sessionsTable: schema.sessions,
-    verificationTokensTable: schema.verificationTokens,
-  }),
+  // Hardened: one live code per email, resend cooldown, and codes burn after 5 wrong guesses.
+  adapter: hardenAdapter(
+    DrizzleAdapter(db, {
+      usersTable: schema.users,
+      accountsTable: schema.accounts,
+      sessionsTable: schema.sessions,
+      verificationTokensTable: schema.verificationTokens,
+    }),
+  ),
   trustHost: true,
   session: { strategy: "database", maxAge: 90 * 24 * 60 * 60 },
   pages: {

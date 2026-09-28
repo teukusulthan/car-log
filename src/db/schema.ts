@@ -62,6 +62,9 @@ export const verificationTokens = pgTable(
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
     expires: timestamp("expires", { mode: "date" }).notNull(),
+    // Not used by Auth.js itself: brute-force and resend protection (see server/verification-tokens.ts).
+    attempts: integer("attempts").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );

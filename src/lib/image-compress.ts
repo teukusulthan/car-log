@@ -1,5 +1,7 @@
 /** Browser-only: shrink photos before upload so receipts stay small and fast on mobile data. */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+/** All photos in one form submission must fit under the host request limit (Vercel: 4.5 MB). */
+export const MAX_FORM_UPLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_EDGE = 1600;
 
 export async function compressImage(file: File): Promise<File> {

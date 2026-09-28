@@ -9,6 +9,7 @@ import { formatKm } from "@/lib/format";
 import { checkOdometer } from "@/lib/odometer";
 import { serviceFormSchema } from "@/lib/schemas";
 import { NotFoundError, requireMembership } from "@/server/access";
+import { AttachmentError, checkImageFiles, deleteAttachment, saveAttachments } from "@/server/queries/attachments";
 import { createService, deleteService, updateService } from "@/server/queries/services";
 import { listReadings } from "@/server/queries/vehicles";
 
@@ -55,15 +56,28 @@ export async function saveServiceAction(
   if (!("data" in result) || !result.data) return result.state;
   const input = { ...result.data };
   delete input.confirm;
+  const photos = formData.getAll("photos").filter((f): f is File => f instanceof File);
 
+  let saved = false;
   try {
+    await checkImageFiles(photos);
     if (recordId) {
       await updateService(householdId, recordId, input);
     } else {
       recordId = await createService(householdId, user.id, input);
     }
+    saved = true;
+    await saveAttachments(householdId, { serviceRecordId: recordId }, photos);
   } catch (e) {
     if (e instanceof NotFoundError) return { message: "This record or car no longer exists." };
+    if (e instanceof AttachmentError) {
+      // Pre-check passed but storing failed validation (e.g. photo limit): the service itself is saved.
+      if (saved && recordId) {
+        revalidatePath("/", "layout");
+        return { ok: true, recordId, message: `Service saved, but photos weren't added: ${e.message}` };
+      }
+      return { message: e.message };
+    }
     throw e;
   }
 
@@ -76,6 +90,18 @@ export async function deleteServiceAction(recordId: string): Promise<{ ok: boole
   const keys = await deleteService(householdId, recordId);
   const { removeStoredFiles } = await import("@/server/storage");
   await removeStoredFiles(keys);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function deleteAttachmentAction(attachmentId: string): Promise<{ ok: boolean }> {
+  const { householdId } = await requireMembership();
+  try {
+    await deleteAttachment(householdId, attachmentId);
+  } catch (e) {
+    if (e instanceof NotFoundError) return { ok: false };
+    throw e;
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }

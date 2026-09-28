@@ -4,7 +4,7 @@ import { CameraIcon, Loader2Icon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { MAX_UPLOAD_BYTES, compressImage } from "@/lib/image-compress";
+import { MAX_FORM_UPLOAD_BYTES, MAX_UPLOAD_BYTES, compressImage } from "@/lib/image-compress";
 
 type Picked = { file: File; url: string };
 export const MAX_PHOTOS = 6;
@@ -32,12 +32,18 @@ export function PhotoPicker({ name, label, existingCount = 0 }: { name: string; 
     const chosen = Array.from(files).slice(0, Math.max(0, room));
     if (files.length > chosen.length) toast.error(`You can attach up to ${MAX_PHOTOS} photos.`);
     const next: Picked[] = [];
+    let total = picked.reduce((sum, p) => sum + p.file.size, 0);
     for (const f of chosen) {
       const file = await compressImage(f);
       if (file.size > MAX_UPLOAD_BYTES) {
         toast.error(`${f.name} is too large.`);
         continue;
       }
+      if (total + file.size > MAX_FORM_UPLOAD_BYTES) {
+        toast.error("That's a lot of photo data for one save. Save first, then add the rest by editing.");
+        break;
+      }
+      total += file.size;
       next.push({ file, url: URL.createObjectURL(file) });
     }
     setPicked((p) => [...p, ...next]);

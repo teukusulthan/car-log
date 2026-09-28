@@ -34,6 +34,7 @@ export default async function EditServicePage({ params }: PageProps<"/history/[i
           notes: record.notes,
           totalCost: record.totalCost,
           lines: record.items,
+          photos: record.attachments,
         }}
         today={today}
         doneHref={`/history/${id}`}

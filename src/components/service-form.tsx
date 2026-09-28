@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FormField, fieldAria } from "@/components/form-field";
+import { ExistingPhotos } from "@/components/existing-photos";
 import { FormMessage } from "@/components/form-message";
 import { MoneyInput } from "@/components/money-input";
 import { PhotoPicker } from "@/components/photo-picker";
@@ -28,6 +29,7 @@ export type ServiceFormDefaults = {
   notes?: string | null;
   totalCost?: number;
   lines?: { maintenanceItemId: string | null; label: string; cost: number | null }[];
+  photos?: { id: string }[];
 };
 
 type Props = {
@@ -58,6 +60,7 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
     const pre = items.find((i) => i.id === preselect);
     return pre ? [{ key: key(), maintenanceItemId: pre.id, label: pre.name, cost: "" }] : [];
   });
+  const [savedPhotoCount, setSavedPhotoCount] = useState(defaults.photos?.length ?? 0);
   const [total, setTotal] = useState(defaults.totalCost ? String(defaults.totalCost) : "");
   const [totalTouched, setTotalTouched] = useState(Boolean(recordId));
   // The server asked to confirm an odd odometer value; editing date/odometer again withdraws that confirmation.
@@ -223,7 +226,10 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
         />
       </FormField>
 
-      <PhotoPicker name="photos" label="Receipt photos" />
+      <div className="grid gap-2">
+        <PhotoPicker name="photos" label="Receipt photos" existingCount={savedPhotoCount} />
+        {defaults.photos && <ExistingPhotos photos={defaults.photos} onCountChange={setSavedPhotoCount} />}
+      </div>
 
       <FormField id="notes" label="Notes" error={e.notes}>
         <Textarea {...fieldAria("notes", e.notes)} rows={3} placeholder="Anything worth remembering" defaultValue={v.notes ?? defaults.notes ?? ""} />

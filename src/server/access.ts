@@ -6,6 +6,9 @@ import { cache } from "react";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
 import type { MemberRole } from "@/db/schema";
+import { getMembership } from "./access-core";
+
+export { NotFoundError, getMembership } from "./access-core";
 
 export const VEHICLE_COOKIE = "cl_vehicle";
 
@@ -23,15 +26,6 @@ export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   return user;
-}
-
-export async function getMembership(userId: string) {
-  const [row] = await db
-    .select({ householdId: schema.householdMembers.householdId, role: schema.householdMembers.role })
-    .from(schema.householdMembers)
-    .where(eq(schema.householdMembers.userId, userId))
-    .limit(1);
-  return row ?? null;
 }
 
 /** Signed-in user who belongs to a household; otherwise redirects to login or onboarding. */
@@ -61,14 +55,6 @@ export async function getCurrentVehicleId(householdId: string): Promise<string |
     .orderBy(asc(schema.vehicles.createdAt))
     .limit(1);
   return first?.id ?? null;
-}
-
-/** Thrown by queries when a record doesn't exist *in this household*. */
-export class NotFoundError extends Error {
-  constructor(what = "Record") {
-    super(`${what} not found`);
-    this.name = "NotFoundError";
-  }
 }
 
 export function orNotFound<T>(value: T | null | undefined): T {

@@ -13,12 +13,15 @@ export function describeRenewal({ status, daysLeft }: DocumentListItem["renewal"
   return `Valid for ${Math.round(daysLeft / 30)} more months`;
 }
 
-export function documentIcon(type: DocumentListItem["type"]) {
-  return type === "insurance" ? ShieldCheckIcon : type === "other" ? FileTextIcon : LandmarkIcon;
-}
+export const DOCUMENT_ICONS = {
+  insurance: ShieldCheckIcon,
+  stnk_annual: LandmarkIcon,
+  stnk_5yr: LandmarkIcon,
+  other: FileTextIcon,
+} as const;
 
 export function DocumentRow({ doc, showVehicle, index = 0 }: { doc: DocumentListItem; showVehicle?: boolean; index?: number }) {
-  const Icon = documentIcon(doc.type);
+  const Icon = DOCUMENT_ICONS[doc.type];
   const { status, daysLeft } = doc.renewal;
   const tone =
     status === "expired" ? "bg-overdue/12 text-overdue" : status === "due_soon" ? "bg-due-soon/20 text-due-soon-foreground dark:text-due-soon" : "bg-muted text-muted-foreground";

@@ -14,21 +14,35 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const RULES: [RegExp, LucideIcon][] = [
-  [/oil filter|filter oli/i, FilterIcon],
-  [/oil|oli/i, DropletIcon],
-  [/cabin|ac\b|a\/c/i, FanIcon],
-  [/air filter|filter udara/i, WindIcon],
-  [/tire|tyre|ban|wheel|rotation|spooring|balanc/i, CircleDotIcon],
-  [/brake|rem/i, DiscIcon],
-  [/battery|aki|accu/i, BatteryChargingIcon],
-  [/coolant|radiator|air radiator/i, ThermometerIcon],
-  [/spark|busi/i, ZapIcon],
-  [/wash|cuci|detail/i, SparklesIcon],
+const ICONS = {
+  oilFilter: FilterIcon,
+  oil: DropletIcon,
+  cabin: FanIcon,
+  air: WindIcon,
+  tire: CircleDotIcon,
+  brake: DiscIcon,
+  battery: BatteryChargingIcon,
+  coolant: ThermometerIcon,
+  spark: ZapIcon,
+  wash: SparklesIcon,
+  other: WrenchIcon,
+} satisfies Record<string, LucideIcon>;
+
+const RULES: [RegExp, keyof typeof ICONS][] = [
+  [/oil filter|filter oli/i, "oilFilter"],
+  [/oil|oli/i, "oil"],
+  [/cabin|ac\b|a\/c/i, "cabin"],
+  [/air filter|filter udara/i, "air"],
+  [/tire|tyre|ban|wheel|rotation|spooring|balanc/i, "tire"],
+  [/brake|rem/i, "brake"],
+  [/battery|aki|accu/i, "battery"],
+  [/coolant|radiator/i, "coolant"],
+  [/spark|busi/i, "spark"],
+  [/wash|cuci|detail/i, "wash"],
 ];
 
-export function maintenanceIcon(name: string): LucideIcon {
-  return RULES.find(([re]) => re.test(name))?.[1] ?? WrenchIcon;
+export function maintenanceIconKey(name: string): keyof typeof ICONS {
+  return RULES.find(([re]) => re.test(name))?.[1] ?? "other";
 }
 
 /** Rounded tile with the item's icon, tinted by status. */
@@ -41,7 +55,7 @@ export function MaintenanceIcon({
   tone?: "neutral" | "overdue" | "due_soon" | "ok" | "primary";
   className?: string;
 }) {
-  const Icon = maintenanceIcon(name);
+  const Icon = ICONS[maintenanceIconKey(name)];
   const tones = {
     neutral: "bg-muted text-muted-foreground",
     primary: "bg-primary/10 text-primary",

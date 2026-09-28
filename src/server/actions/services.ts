@@ -53,7 +53,8 @@ export async function saveServiceAction(
   const { user, householdId } = await requireMembership();
   const result = await validate(formData, householdId, recordId ?? undefined);
   if (!("data" in result) || !result.data) return result.state;
-  const { confirm: _confirm, ...input } = result.data;
+  const input = { ...result.data };
+  delete input.confirm;
 
   try {
     if (recordId) {

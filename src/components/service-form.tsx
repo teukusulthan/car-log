@@ -60,7 +60,10 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
   });
   const [total, setTotal] = useState(defaults.totalCost ? String(defaults.totalCost) : "");
   const [totalTouched, setTotalTouched] = useState(Boolean(recordId));
-  const [confirmed, setConfirmed] = useState(false);
+  // The server asked to confirm an odd odometer value; editing date/odometer again withdraws that confirmation.
+  const [withdrawnFor, setWithdrawnFor] = useState<ServiceFormState | null>(null);
+  const confirmed = Boolean(state.needsConfirm) && withdrawnFor !== state;
+  const withdrawConfirmation = () => setWithdrawnFor(state);
 
   const itemsSum = useMemo(() => lines.reduce((sum, l) => sum + (Number(l.cost) || 0), 0), [lines]);
   const effectiveTotal = totalTouched ? total : itemsSum ? String(itemsSum) : "";
@@ -70,7 +73,6 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
       toast.success(state.message ?? "Saved");
       router.push(recordId ? `/history/${recordId}` : doneHref);
     }
-    if (state.needsConfirm) setConfirmed(true);
   }, [state, router, recordId, doneHref]);
 
   const toggle = (item: ServiceFormItem) =>
@@ -108,10 +110,10 @@ export function ServiceForm({ recordId, vehicleId, items, workshops, defaults, t
 
       <div className="grid grid-cols-2 gap-3">
         <FormField id="date" label="Date" error={e.date}>
-          <Input {...fieldAria("date", e.date)} type="date" max={today} defaultValue={v.date ?? defaults.date} onChange={() => setConfirmed(false)} required />
+          <Input {...fieldAria("date", e.date)} type="date" max={today} defaultValue={v.date ?? defaults.date} onChange={withdrawConfirmation} required />
         </FormField>
         <FormField id="odometer" label="Odometer (km)" error={e.odometer}>
-          <Input {...fieldAria("odometer", e.odometer)} inputMode="numeric" defaultValue={v.odometer ?? defaults.odometer} onChange={() => setConfirmed(false)} required />
+          <Input {...fieldAria("odometer", e.odometer)} inputMode="numeric" defaultValue={v.odometer ?? defaults.odometer} onChange={withdrawConfirmation} required />
         </FormField>
       </div>
 

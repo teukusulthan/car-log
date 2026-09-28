@@ -203,6 +203,7 @@ export const serviceRecordItems = pgTable(
     }),
     label: text("label").notNull(),
     cost: integer("cost"),
+    position: integer("position").notNull().default(0),
   },
   (t) => [
     index("service_record_items_record_idx").on(t.serviceRecordId),

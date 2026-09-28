@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isoDate, kmField, optionalInt, optionalText } from "./validators";
+import { isoDate, kmField, moneyField, optionalInt, optionalText } from "./validators";
 
 const currentYear = new Date().getFullYear();
 
@@ -39,5 +39,31 @@ export const scheduleSchema = z.array(scheduleItemSchema).max(50);
 export const odometerSchema = z.object({
   vehicleId: z.uuid(),
   km: kmField("Odometer"),
+  confirm: z.string().optional(),
+});
+
+export const serviceItemSchema = z.object({
+  maintenanceItemId: z.uuid().nullable().optional(),
+  label: z.string().trim().min(1, "Describe the work").max(80),
+  cost: z.number().int().min(0).max(2_000_000_000).nullable().optional(),
+});
+
+export const serviceFormSchema = z.object({
+  vehicleId: z.uuid(),
+  date: isoDate(),
+  odometer: kmField("Odometer"),
+  workshop: optionalText(80),
+  notes: optionalText(1000),
+  totalCost: moneyField,
+  items: z.preprocess(
+    (v) => {
+      try {
+        return typeof v === "string" ? JSON.parse(v) : v;
+      } catch {
+        return [];
+      }
+    },
+    z.array(serviceItemSchema).min(1, "Pick at least one thing that was done").max(40),
+  ),
   confirm: z.string().optional(),
 });

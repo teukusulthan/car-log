@@ -17,11 +17,11 @@ export function RenewDocumentButton({ documentId, suggested }: { documentId: str
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary">
+        <Button size="lg" className="rounded-2xl">
           <RefreshCwIcon /> I renewed it
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-2xl pb-safe">
+      <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-[28px] pb-safe">
         <SheetHeader>
           <SheetTitle>Renewed</SheetTitle>
           <SheetDescription>When does the new one expire?</SheetDescription>

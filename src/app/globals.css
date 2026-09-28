@@ -212,6 +212,12 @@
   }
 }
 
+@keyframes ring-in {
+  from {
+    stroke-dashoffset: 276;
+  }
+}
+
 @keyframes grow-y {
   from {
     transform: scaleY(0);

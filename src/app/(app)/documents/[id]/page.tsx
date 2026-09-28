@@ -4,6 +4,7 @@ import { describeRenewal } from "@/components/document-list";
 import { DocumentForm } from "@/components/document-form";
 import { PageHeader } from "@/components/page-header";
 import { RenewDocumentButton } from "@/components/renew-document-button";
+import { CountdownRing } from "@/components/countdown-ring";
 import { StatusBadge } from "@/components/status-badge";
 import { addMonths, todayInJakarta } from "@/lib/dates";
 import { renewalStatus } from "@/lib/documents";
@@ -26,19 +27,20 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
   return (
     <div className="grid gap-6">
       <PageHeader title={d.title} subtitle={d.vehicleName} back="/documents" />
-      <section className="grid gap-3 rounded-2xl border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <section className="rise-in grid gap-5 rounded-[28px] bg-card p-5 shadow-soft">
+        <div className="flex items-center gap-5">
+          <CountdownRing daysLeft={renewal.daysLeft} periodDays={DOCUMENT_PRESETS[d.type].renewMonths * 30} tone={renewal.status} />
+          <div className="grid gap-1">
+            <StatusBadge tone={renewal.status} className="justify-self-start" />
             <p className="text-sm text-muted-foreground">Expires</p>
-            <p className="text-lg font-semibold">{formatDate(d.expiresOn)}</p>
+            <p className="text-xl font-semibold">{formatDate(d.expiresOn)}</p>
             <p className="text-sm text-muted-foreground">{describeRenewal(renewal)}</p>
           </div>
-          <StatusBadge tone={renewal.status} />
         </div>
         <RenewDocumentButton documentId={d.id} suggested={suggested} />
       </section>
       <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Details</h2>
+        <h2 className="px-1 text-lg font-semibold">Details</h2>
         {/* Keyed on the saved values so a renewal (or another member's edit) refreshes these uncontrolled fields. */}
         <DocumentForm
           key={`${d.expiresOn}|${d.title}|${d.remindDaysBefore}`}

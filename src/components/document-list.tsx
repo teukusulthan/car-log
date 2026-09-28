@@ -34,7 +34,7 @@ export function DocumentRow({ doc, showVehicle, index = 0 }: { doc: DocumentList
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate font-semibold">{doc.title}</p>
-            {status !== "ok" && <StatusBadge tone={status} />}
+            {status === "expired" && <StatusBadge tone={status} />}
           </div>
           <p className={status === "ok" ? "text-sm text-muted-foreground" : "text-sm font-medium"}>{describeRenewal(doc.renewal)}</p>
           <p className="truncate text-xs text-muted-foreground">

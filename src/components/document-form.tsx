@@ -113,11 +113,11 @@ export function DocumentForm({
           <FormField id="expiresOn" label="Expires on" error={e.expiresOn}>
             <Input {...fieldAria("expiresOn", e.expiresOn)} type="date" defaultValue={v.expiresOn ?? defaults.expiresOn} required />
           </FormField>
-          <FormField id="remindDaysBefore" label="Remind me" error={e.remindDaysBefore}>
+          <FormField id="remindDaysBefore" label="Remind me before" error={e.remindDaysBefore}>
             <NativeSelect id="remindDaysBefore" name="remindDaysBefore" ref={remindRef} defaultValue={remindDefault}>
               {remindOptions.map((d) => (
                 <option key={d} value={d}>
-                  {d} days before
+                  {d} days
                 </option>
               ))}
             </NativeSelect>

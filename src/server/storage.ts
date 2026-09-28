@@ -76,7 +76,16 @@ function createStorage(): FileStorage {
   return localStorage();
 }
 
-export const storage: FileStorage = createStorage();
+let instance: FileStorage | null = null;
+const impl = () => (instance ??= createStorage());
+
+/** Lazily created so builds and scripts that never touch files don't need storage configured. */
+export const storage: FileStorage = {
+  put: (key, body, contentType) => impl().put(key, body, contentType),
+  signedUrl: (key) => impl().signedUrl(key),
+  read: (key) => impl().read(key),
+  remove: (key) => impl().remove(key),
+};
 
 /** Best-effort cleanup after rows are deleted; failures are logged, never thrown. */
 export async function removeStoredFiles(keys: string[]) {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         {children}
         <Toaster position="top-center" richColors closeButton={false} />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

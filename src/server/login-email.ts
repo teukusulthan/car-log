@@ -38,7 +38,9 @@ export async function sendLoginEmail(email: LoginEmail) {
     if (!res.ok) throw new Error(`Resend error ${res.status}: ${await res.text()}`);
     return;
   }
-  if (env.NODE_ENV === "production") {
+  // Production must send real email, except local/e2e runs of a production build that opt in explicitly.
+  const fileSinkAllowed = env.NODE_ENV !== "production" || (env.LOGIN_EMAIL_SINK === "file" && !process.env.VERCEL);
+  if (!fileSinkAllowed) {
     throw new Error("RESEND_API_KEY is required in production to send sign-in emails");
   }
   const dir = path.join(process.cwd(), ".dev");

@@ -1,6 +1,7 @@
 import { PartyPopperIcon } from "lucide-react";
 import { DocumentRow } from "@/components/document-list";
 import { DueList } from "@/components/due-list";
+import { InstallGuide } from "@/components/install-guide";
 import { OdometerCard } from "@/components/odometer-card";
 import { VehicleHeader } from "@/components/vehicle-header";
 import { diffDays, todayInJakarta } from "@/lib/dates";
@@ -27,6 +28,7 @@ export default async function HomePage() {
   return (
     <div className="grid gap-6">
       <VehicleHeader eyebrow="Your car" vehicles={vehicles} current={vehicle} />
+      <InstallGuide />
 
       <OdometerCard
         vehicleId={vehicle.id}

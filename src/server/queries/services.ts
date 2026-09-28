@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, inArray, isNotNull, max } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, max, sql } from "drizzle-orm";
 import { db, schema, type Tx } from "@/db";
 import type { ISODate } from "@/lib/dates";
 import { NotFoundError } from "@/server/access-core";
@@ -168,4 +168,116 @@ export async function listWorkshops(householdId: string): Promise<string[]> {
     .orderBy(desc(max(schema.serviceRecords.date)))
     .limit(20);
   return rows.map((r) => r.workshop!);
+}
+
+export const OTHER_LABEL = "Other / labour";
+
+export type ServiceListItem = {
+  id: string;
+  date: ISODate;
+  odometer: number;
+  workshop: string | null;
+  totalCost: number;
+  labels: string[];
+  photoCount: number;
+};
+
+export async function listServices(householdId: string, vehicleId: string): Promise<ServiceListItem[]> {
+  const records = await db
+    .select({
+      id: schema.serviceRecords.id,
+      date: schema.serviceRecords.date,
+      odometer: schema.serviceRecords.odometer,
+      workshop: schema.serviceRecords.workshop,
+      totalCost: schema.serviceRecords.totalCost,
+    })
+    .from(schema.serviceRecords)
+    .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.serviceRecords.vehicleId))
+    .where(and(eq(schema.serviceRecords.vehicleId, vehicleId), eq(schema.vehicles.householdId, householdId)))
+    .orderBy(desc(schema.serviceRecords.date), desc(schema.serviceRecords.odometer), desc(schema.serviceRecords.createdAt));
+  if (!records.length) return [];
+
+  const ids = records.map((r) => r.id);
+  const [items, photos] = await Promise.all([
+    db
+      .select({ recordId: schema.serviceRecordItems.serviceRecordId, label: schema.serviceRecordItems.label })
+      .from(schema.serviceRecordItems)
+      .where(inArray(schema.serviceRecordItems.serviceRecordId, ids))
+      .orderBy(asc(schema.serviceRecordItems.position)),
+    db
+      .select({ recordId: schema.attachments.serviceRecordId, n: count() })
+      .from(schema.attachments)
+      .where(inArray(schema.attachments.serviceRecordId, ids))
+      .groupBy(schema.attachments.serviceRecordId),
+  ]);
+  const labels = new Map<string, string[]>();
+  for (const i of items) labels.set(i.recordId, [...(labels.get(i.recordId) ?? []), i.label]);
+  const photoCounts = new Map(photos.map((p) => [p.recordId!, p.n]));
+  return records.map((r) => ({ ...r, labels: labels.get(r.id) ?? [], photoCount: photoCounts.get(r.id) ?? 0 }));
+}
+
+export type CostSummary = {
+  year: number;
+  total: number;
+  serviceCount: number;
+  byMonth: number[];
+  byItem: { label: string; total: number }[];
+};
+
+export async function costSummary(householdId: string, vehicleId: string, year: number): Promise<CostSummary> {
+  const records = await db
+    .select({ id: schema.serviceRecords.id, date: schema.serviceRecords.date, totalCost: schema.serviceRecords.totalCost })
+    .from(schema.serviceRecords)
+    .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.serviceRecords.vehicleId))
+    .where(
+      and(
+        eq(schema.serviceRecords.vehicleId, vehicleId),
+        eq(schema.vehicles.householdId, householdId),
+        gte(schema.serviceRecords.date, `${year}-01-01`),
+        lte(schema.serviceRecords.date, `${year}-12-31`),
+      ),
+    );
+
+  const byMonth = Array.from({ length: 12 }, () => 0);
+  const byItem = new Map<string, number>();
+  if (records.length) {
+    const items = await db
+      .select({
+        recordId: schema.serviceRecordItems.serviceRecordId,
+        label: schema.serviceRecordItems.label,
+        cost: schema.serviceRecordItems.cost,
+      })
+      .from(schema.serviceRecordItems)
+      .where(inArray(schema.serviceRecordItems.serviceRecordId, records.map((r) => r.id)));
+    const itemized = new Map<string, number>();
+    for (const i of items) {
+      if (!i.cost) continue;
+      byItem.set(i.label, (byItem.get(i.label) ?? 0) + i.cost);
+      itemized.set(i.recordId, (itemized.get(i.recordId) ?? 0) + i.cost);
+    }
+    for (const r of records) {
+      byMonth[Number(r.date.slice(5, 7)) - 1] += r.totalCost;
+      const rest = r.totalCost - (itemized.get(r.id) ?? 0);
+      if (rest > 0) byItem.set(OTHER_LABEL, (byItem.get(OTHER_LABEL) ?? 0) + rest);
+    }
+  }
+
+  return {
+    year,
+    total: records.reduce((sum, r) => sum + r.totalCost, 0),
+    serviceCount: records.length,
+    byMonth,
+    byItem: [...byItem.entries()].map(([label, total]) => ({ label, total })).sort((a, b) => b.total - a.total),
+  };
+}
+
+export async function listServiceYears(householdId: string, vehicleId: string): Promise<number[]> {
+  const year = sql<number>`extract(year from ${schema.serviceRecords.date})::int`;
+  const rows = await db
+    .selectDistinct({ year })
+    .from(schema.serviceRecords)
+    .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.serviceRecords.vehicleId))
+    .where(and(eq(schema.serviceRecords.vehicleId, vehicleId), eq(schema.vehicles.householdId, householdId)))
+    .orderBy(desc(year));
+  return rows.map((r) => r.year);
 }

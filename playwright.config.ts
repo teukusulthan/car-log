@@ -24,7 +24,8 @@ export default defineConfig({
   webServer: {
     command: `pnpm build && pnpm start -p ${PORT}`,
     url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: !process.env.CI,
+    // Always build and serve the current code; a leftover server would silently test stale code.
+    reuseExistingServer: false,
     timeout: 240_000,
     env: { DATABASE_URL, LOGIN_EMAIL_SINK: "file" },
   },

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { type ActionState, parseForm } from "@/lib/form";
+import { type ActionState, formValues, parseForm } from "@/lib/form";
 import { documentFormSchema, renewSchema } from "@/lib/schemas";
 import { NotFoundError, requireMembership } from "@/server/access";
 import { AttachmentError, checkImageFiles, saveAttachments } from "@/server/queries/attachments";
@@ -28,13 +28,13 @@ export async function saveDocumentAction(
     saved = true;
     await saveAttachments(householdId, { documentId }, photos);
   } catch (e) {
-    if (e instanceof NotFoundError) return { message: "This document or car no longer exists." };
+    if (e instanceof NotFoundError) return { message: "This document or car no longer exists.", values: formValues(formData) };
     if (e instanceof AttachmentError) {
       if (saved) {
         revalidatePath("/", "layout");
         return { ok: true, documentId: documentId!, message: `Saved, but photos weren't added: ${e.message}` };
       }
-      return { message: e.message };
+      return { message: e.message, values: formValues(formData) };
     }
     throw e;
   }

@@ -16,11 +16,20 @@ export function PhotoPicker({ name, label, existingCount = 0 }: { name: string; 
   const [busy, setBusy] = useState(false);
 
   // Mirror the picked files into the (hidden) file input so they're part of the form submission.
+  // React resets the form after every action (even one that returns an error), which empties the
+  // file input; restore it on reset so the photos are still submitted next time.
   useEffect(() => {
-    if (!inputRef.current) return;
-    const dt = new DataTransfer();
-    picked.forEach((p) => dt.items.add(p.file));
-    inputRef.current.files = dt.files;
+    const input = inputRef.current;
+    if (!input) return;
+    const sync = () => {
+      const dt = new DataTransfer();
+      picked.forEach((p) => dt.items.add(p.file));
+      input.files = dt.files;
+    };
+    sync();
+    const onReset = () => setTimeout(sync, 0);
+    input.form?.addEventListener("reset", onReset);
+    return () => input.form?.removeEventListener("reset", onReset);
   }, [picked]);
 
   useEffect(() => () => picked.forEach((p) => URL.revokeObjectURL(p.url)), [picked]);

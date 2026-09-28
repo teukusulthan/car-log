@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, schema } from "@/db";
 import { todayInJakarta } from "@/lib/dates";
-import { type ActionState, parseForm } from "@/lib/form";
+import { type ActionState, formValues, parseForm } from "@/lib/form";
 import { formatKm } from "@/lib/format";
 import { checkOdometer } from "@/lib/odometer";
 import { serviceFormSchema } from "@/lib/schemas";
@@ -21,7 +21,9 @@ async function validate(formData: FormData, householdId: string, recordId?: stri
   const data = parsed.data;
 
   if (data.date > todayInJakarta()) {
-    return { state: { fieldErrors: { date: "Can't be in the future" }, message: "Please fix the highlighted fields." } } as const;
+    return {
+      state: { fieldErrors: { date: "Can't be in the future" }, message: "Please fix the highlighted fields.", values: formValues(formData) },
+    } as const;
   }
 
   if (data.confirm !== "1") {
@@ -40,7 +42,7 @@ async function validate(formData: FormData, householdId: string, recordId?: stri
         check === "lower_than_before"
           ? `${formatKm(data.odometer)} is lower than an earlier reading for this car. Save anyway?`
           : `${formatKm(data.odometer)} is higher than a later reading for this car. Save anyway?`;
-      return { state: { needsConfirm: true, message } } as const;
+      return { state: { needsConfirm: true, message, values: formValues(formData) } } as const;
     }
   }
   return { data } as const;
@@ -69,14 +71,14 @@ export async function saveServiceAction(
     saved = true;
     await saveAttachments(householdId, { serviceRecordId: recordId }, photos);
   } catch (e) {
-    if (e instanceof NotFoundError) return { message: "This record or car no longer exists." };
+    if (e instanceof NotFoundError) return { message: "This record or car no longer exists.", values: formValues(formData) };
     if (e instanceof AttachmentError) {
       // Pre-check passed but storing failed validation (e.g. photo limit): the service itself is saved.
       if (saved && recordId) {
         revalidatePath("/", "layout");
         return { ok: true, recordId, message: `Service saved, but photos weren't added: ${e.message}` };
       }
-      return { message: e.message };
+      return { message: e.message, values: formValues(formData) };
     }
     throw e;
   }

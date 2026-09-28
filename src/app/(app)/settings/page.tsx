@@ -1,32 +1,18 @@
-import { ChevronRightIcon, DownloadIcon, PlusIcon } from "lucide-react";
+import { CarFrontIcon, ChevronRightIcon, DownloadIcon, KeyRoundIcon, PlusIcon, UsersIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import type { ReactNode } from "react";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { HouseholdNameForm } from "@/components/household-name-form";
 import { InviteButton } from "@/components/invite-button";
 import { MemberList } from "@/components/member-list";
 import { NotificationSettings } from "@/components/notification-settings";
 import { PageHeader } from "@/components/page-header";
+import { SettingsGroup, SettingsIcon, SettingsRow } from "@/components/settings-list";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Button } from "@/components/ui/button";
 import { requireMembership } from "@/server/access";
 import { getHousehold, listMembers } from "@/server/queries/households";
 import { listVehicles } from "@/server/queries/vehicles";
 
 export const metadata: Metadata = { title: "Settings" };
-
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-3">
-      <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export default async function SettingsPage() {
   const { user, householdId, role } = await requireMembership();
@@ -35,62 +21,76 @@ export default async function SettingsPage() {
     listMembers(householdId),
     listVehicles(householdId),
   ]);
+  const initial = (user.name || user.email).charAt(0).toUpperCase();
 
   return (
-    <div className="grid gap-8">
-      <PageHeader title="Settings" subtitle={user.email} />
+    <div className="grid gap-7">
+      <PageHeader title="Settings" />
 
-      <Section title="Cars">
-        {vehicles.length > 0 && (
-          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-            {vehicles.map((v) => (
-              <li key={v.id}>
-                <Link href={`/vehicles/${v.id}`} className="flex items-center gap-3 px-4 py-3.5 active:bg-muted">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{v.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {[v.make, v.model, v.year, v.plate].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
-                  <span className="text-sm text-muted-foreground">Details & schedule</span>
-                  <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
-                </Link>
-              </li>
-            ))}
-          </ul>
+      <section className="rise-in flex items-center gap-4 rounded-[26px] bg-card p-4 shadow-soft">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-[18px] bg-primary text-xl font-semibold text-primary-foreground">
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold">{user.name ?? "You"}</p>
+          <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {role === "owner" ? "Owner" : "Member"} of {household?.name ?? "your garage"}
+          </p>
+        </div>
+      </section>
+
+      <SettingsGroup title="Cars" index={1} footer="Open a car to edit its details, service schedule and odometer readings.">
+        {vehicles.map((v) => (
+          <SettingsRow
+            key={v.id}
+            icon={CarFrontIcon}
+            label={v.name}
+            detail={[v.make, v.model, v.year, v.plate].filter(Boolean).join(" · ")}
+            href={`/vehicles/${v.id}`}
+          />
+        ))}
+        <SettingsRow icon={PlusIcon} tone="gray" label="Add a car" href="/vehicles/new" />
+      </SettingsGroup>
+
+      <SettingsGroup title="Reminders" index={2} footer="Reminders are set up per device — turn them on for each phone.">
+        <div className="p-4">
+          <NotificationSettings />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup title="Garage" index={3} footer="Everyone in your garage sees and edits the same cars. Invite links work once and expire in 7 days.">
+        {role === "owner" && household && (
+          <div className="flex items-center gap-3 px-4 py-3">
+            <SettingsIcon icon={UsersIcon} tone="green" />
+            <div className="flex-1">
+              <HouseholdNameForm name={household.name} />
+            </div>
+          </div>
         )}
-        <Button asChild variant="outline">
-          <Link href="/vehicles/new">
-            <PlusIcon /> Add a car
-          </Link>
-        </Button>
-      </Section>
-
-      <Section title="Notifications" description="Reminders are set up per device.">
-        <NotificationSettings />
-      </Section>
-
-      <Section title="Garage" description="Everyone in your garage sees and edits the same cars.">
-        {role === "owner" && household && <HouseholdNameForm name={household.name} />}
         <MemberList members={members} currentUserId={user.id} canManage={role === "owner"} />
-        <InviteButton householdName={household?.name ?? "our garage"} />
-      </Section>
+        <div className="p-3">
+          <InviteButton householdName={household?.name ?? "our garage"} />
+        </div>
+      </SettingsGroup>
 
-      <Section title="Your data">
-        <Button asChild variant="outline">
-          <a href="/api/export" download>
-            <DownloadIcon /> Export service history (CSV)
-          </a>
-        </Button>
-      </Section>
+      <SettingsGroup title="Account" index={4}>
+        <details className="group">
+          <summary className="pressable flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-2.5 active:bg-muted/60 [&::-webkit-details-marker]:hidden">
+            <SettingsIcon icon={KeyRoundIcon} tone="amber" />
+            <span className="flex-1 font-medium">Change password</span>
+            <ChevronRightIcon className="size-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-90" aria-hidden />
+          </summary>
+          <div className="px-4 pb-4">
+            <ChangePasswordForm />
+          </div>
+        </details>
+        <SettingsRow icon={DownloadIcon} tone="gray" label="Export service history" detail="CSV for Excel or Google Sheets" href="/api/export" download />
+      </SettingsGroup>
 
-      <Section title="Password">
-        <ChangePasswordForm />
-      </Section>
-
-      <Section title="Account">
+      <div className="rise-in" style={{ ["--i" as string]: 5 }}>
         <SignOutButton />
-      </Section>
+      </div>
     </div>
   );
 }

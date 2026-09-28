@@ -22,9 +22,12 @@ export default async function VehiclePage({ params }: PageProps<"/vehicles/[id]"
 
   return (
     <>
-      <PageHeader title={vehicle.name} subtitle={`${vehicle.make} ${vehicle.model}`} back="/settings" />
+      <PageHeader
+        title={vehicle.name}
+        subtitle={`${vehicle.make} ${vehicle.model}` !== vehicle.name ? `${vehicle.make} ${vehicle.model}` : undefined}
+        back="/settings"
+      />
       <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">Details</h2>
         <VehicleForm
           mode="edit"
           action={updateVehicleAction.bind(null, vehicle.id)}
@@ -34,8 +37,8 @@ export default async function VehiclePage({ params }: PageProps<"/vehicles/[id]"
       </section>
       <section className="mt-10 grid gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Service schedule</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="px-1 text-lg font-semibold">Service schedule</h2>
+          <p className="px-1 text-sm text-muted-foreground">
             Whichever comes first triggers a reminder. Check your owner&apos;s manual for exact intervals.
           </p>
         </div>
@@ -46,13 +49,13 @@ export default async function VehiclePage({ params }: PageProps<"/vehicles/[id]"
       </section>
       <section className="mt-10 grid gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Odometer readings</h2>
-          <p className="text-sm text-muted-foreground">Entered a wrong number? Delete it here.</p>
+          <h2 className="px-1 text-lg font-semibold">Odometer readings</h2>
+          <p className="px-1 text-sm text-muted-foreground">Entered a wrong number? Delete it here.</p>
         </div>
         <ReadingList readings={readings} />
       </section>
       <section className="mt-10 mb-4 grid gap-3">
-        <h2 className="text-lg font-semibold">Danger zone</h2>
+        <h2 className="px-1 text-lg font-semibold">Danger zone</h2>
         <ConfirmDeleteButton
           label="Delete this car"
           title={`Delete ${vehicle.name}?`}

@@ -11,6 +11,8 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-surface: var(--surface);
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
   --color-overdue: var(--overdue);
   --color-overdue-foreground: var(--overdue-foreground);
   --color-due-soon: var(--due-soon);
@@ -79,6 +81,10 @@
   --chart-5: oklch(0.8 0.01 65);
   --radius: 0.8rem;
   --shadow-color: oklch(0.35 0.03 60 / 0.09);
+  /* Brand panels (home hero, auth header): deep blue with white text in both themes. */
+  --hero: oklch(0.47 0.145 259);
+  --hero-2: oklch(0.38 0.12 263);
+  --hero-foreground: oklch(0.99 0.005 258);
   --overdue: oklch(0.57 0.19 28);
   --overdue-foreground: oklch(0.985 0.01 28);
   --due-soon: oklch(0.76 0.14 72);
@@ -114,6 +120,8 @@
     --chart-4: oklch(0.55 0.01 70);
     --chart-5: oklch(0.4 0.01 70);
     --shadow-color: oklch(0 0 0 / 0.35);
+    --hero: oklch(0.42 0.13 259);
+    --hero-2: oklch(0.3 0.09 263);
     --overdue: oklch(0.66 0.18 25);
     --overdue-foreground: oklch(0.18 0.03 25);
     --due-soon: oklch(0.8 0.13 75);
@@ -204,6 +212,12 @@
   }
 }
 
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
 @keyframes grow-x {
   from {
     transform: scaleX(0);
@@ -220,4 +234,9 @@
   100% {
     transform: scale(1);
   }
+}
+
+@utility bg-hero-gradient {
+  background: radial-gradient(120% 90% at 100% 0%, color-mix(in oklch, var(--hero) 80%, white) 0%, transparent 55%),
+    linear-gradient(160deg, var(--hero) 0%, var(--hero-2) 100%);
 }

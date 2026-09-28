@@ -28,7 +28,7 @@ export function InviteButton({ householdName }: { householdName: string }) {
       }
     });
   return (
-    <Button variant="outline" onClick={invite} disabled={pending}>
+    <Button variant="secondary" className="w-full rounded-2xl" onClick={invite} disabled={pending}>
       <UserPlusIcon /> {pending ? "Creating link…" : "Invite family member"}
     </Button>
   );

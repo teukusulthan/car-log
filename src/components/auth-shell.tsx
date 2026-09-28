@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 export function AuthShell({ title, description, children }: { title: string; description: ReactNode; children: ReactNode }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col pb-safe">
-      <div className="relative isolate overflow-hidden rounded-b-[36px] bg-primary px-6 pt-[max(env(safe-area-inset-top),1.5rem)] pb-10 text-primary-foreground">
+      <div className="relative isolate overflow-hidden rounded-b-[36px] bg-hero-gradient px-6 pt-[max(env(safe-area-inset-top),1.5rem)] pb-10 text-hero-foreground">
         <div aria-hidden className="absolute -top-20 -right-10 -z-10 size-64 rounded-full bg-white/15 blur-3xl" />
         <div aria-hidden className="absolute -bottom-24 -left-16 -z-10 size-64 rounded-full bg-black/20 blur-3xl" />
         <div className="rise-in flex items-center gap-2.5 pt-6">

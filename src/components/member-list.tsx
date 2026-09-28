@@ -10,10 +10,10 @@ type Member = { userId: string; email: string | null; name: string | null; role:
 export function MemberList({ members, currentUserId, canManage }: { members: Member[]; currentUserId: string; canManage: boolean }) {
   const [pending, startTransition] = useTransition();
   return (
-    <ul className="divide-y rounded-2xl border bg-card">
+    <ul className="divide-y divide-border/70">
       {members.map((m) => (
         <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/12 text-sm font-semibold text-primary">
             {(m.name || m.email || "?").charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">

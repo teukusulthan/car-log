@@ -28,7 +28,7 @@ export function HeroCard({ vehicle, vehicles, currentKm, daysSinceReading, avgDa
   return (
     <section
       aria-label={`${vehicle.name} overview`}
-      className="rise-in relative isolate overflow-hidden rounded-[28px] bg-primary p-5 text-primary-foreground shadow-lift"
+      className="rise-in relative isolate overflow-hidden rounded-[28px] bg-hero-gradient p-5 text-hero-foreground shadow-lift"
     >
       {/* Decorative light and a faint gauge arc. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 -z-10 size-72 rounded-full bg-white/15 blur-3xl" />
@@ -44,7 +44,7 @@ export function HeroCard({ vehicle, vehicles, currentKm, daysSinceReading, avgDa
             <span className="truncate">{vehicle.name}</span>
             {vehicles.length > 1 && <ChevronDownIcon className="size-5 shrink-0 opacity-70" aria-hidden />}
           </h1>
-          {showSubtitle && <p className="truncate text-sm text-primary-foreground/70">{subtitle}</p>}
+          {showSubtitle && <p className="truncate text-sm text-hero-foreground/70">{subtitle}</p>}
           {vehicles.length > 1 && <VehicleSelect vehicles={vehicles} currentId={vehicle.id} />}
         </div>
         {vehicle.plate && <Plate value={vehicle.plate} className="mt-1 shrink-0" />}
@@ -52,12 +52,12 @@ export function HeroCard({ vehicle, vehicles, currentKm, daysSinceReading, avgDa
 
       <div className="mt-6 flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-primary-foreground/70 uppercase">Odometer</p>
+          <p className="text-xs font-medium tracking-wide text-hero-foreground/70 uppercase">Odometer</p>
           <p className="text-[40px] leading-none font-semibold tracking-tight tabular-nums">
             {formatNumber(currentKm)}
-            <span className="ml-1.5 text-lg font-medium text-primary-foreground/70">km</span>
+            <span className="ml-1.5 text-lg font-medium text-hero-foreground/70">km</span>
           </p>
-          <p className="mt-2 text-sm text-primary-foreground/75">
+          <p className="mt-2 text-sm text-hero-foreground/75">
             {daysSinceReading !== null && `Updated ${describeAgo(daysSinceReading)}`}
             {avgDailyKm !== null && ` · ~${formatNumber(avgDailyKm)} km/day`}
           </p>
@@ -68,7 +68,7 @@ export function HeroCard({ vehicle, vehicles, currentKm, daysSinceReading, avgDa
               type="button"
               className={cn(
                 "pressable flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold backdrop-blur-md",
-                stale ? "bg-white text-primary shadow-soft" : "bg-white/15 text-primary-foreground ring-1 ring-white/25 ring-inset",
+                stale ? "bg-white text-hero shadow-soft" : "bg-white/15 text-hero-foreground ring-1 ring-white/25 ring-inset",
               )}
             >
               <GaugeIcon className="size-4" aria-hidden /> Update
@@ -103,7 +103,7 @@ function HealthStat({ label, value, dot }: { label: string; value: number; dot: 
   return (
     <li className="rounded-2xl bg-white/10 px-2 py-2.5 ring-1 ring-white/10 ring-inset">
       <p className="text-xl leading-none font-semibold tabular-nums">{value}</p>
-      <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-medium text-primary-foreground/80">
+      <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-medium text-hero-foreground/80">
         <span aria-hidden className={cn("size-1.5 rounded-full", value ? dot : "bg-white/40")} />
         {label}
       </p>

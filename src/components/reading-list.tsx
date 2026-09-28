@@ -14,9 +14,9 @@ export function ReadingList({ readings }: { readings: Reading[] }) {
   const [pending, startTransition] = useTransition();
   const deletable = readings.length > 1;
   return (
-    <ul className="divide-y rounded-2xl border bg-card">
+    <ul className="divide-y divide-border/70 overflow-hidden rounded-[24px] bg-card shadow-soft">
       {readings.map((r) => (
-        <li key={r.id} className="flex items-center gap-3 px-4 py-2.5">
+        <li key={r.id} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
           <div className="min-w-0 flex-1">
             <p className="font-medium tabular-nums">{formatKm(r.km)}</p>
             <p className="text-sm text-muted-foreground">

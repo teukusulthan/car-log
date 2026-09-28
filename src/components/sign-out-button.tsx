@@ -25,6 +25,7 @@ export function SignOutButton() {
   return (
     <Button
       variant="outline"
+      className="h-12 w-full rounded-2xl text-destructive"
       disabled={pending}
       onClick={() =>
         startTransition(async () => {

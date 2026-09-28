@@ -12,11 +12,11 @@ test("a tab opened in-app is available offline later", async ({ page, context })
 
   // Client-side navigation only (no full page load of /history).
   await page.getByRole("link", { name: "History" }).click();
-  await expect(page.getByText("Service history")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "History", exact: true })).toBeVisible();
   await page.waitForTimeout(1500); // give the service worker time to store the page
 
   await context.setOffline(true);
   await page.goto("/history");
-  await expect(page.getByText("Service history")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "History", exact: true })).toBeVisible();
   await expect(page.getByText(/Offline — showing saved data/)).toBeVisible();
 });

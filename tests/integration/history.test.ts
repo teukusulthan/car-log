@@ -65,3 +65,19 @@ describe("costSummary", () => {
     expect(await listServiceYears(h.householdId, h.vehicleId)).toEqual([2026, 2024]);
   });
 });
+
+describe("exportServices", () => {
+  it("exports every service of the household with item labels, oldest first", async () => {
+    const { exportServices } = await import("@/server/queries/services");
+    const a = await makeHousehold();
+    const b = await makeHousehold();
+    await add(a, "2026-05-01", 200000, [{ label: "Engine oil", cost: 150000 }, { label: "Wash" }]);
+    await add(a, "2026-01-01", 100000);
+    await add(b, "2026-02-01", 999);
+    const rows = await exportServices(a.householdId);
+    expect(rows.map((r) => [r.date, r.vehicle, r.items, r.totalCost])).toEqual([
+      ["2026-01-01", "Avanza", "Check-up", 100000],
+      ["2026-05-01", "Avanza", "Engine oil (150000); Wash", 200000],
+    ]);
+  });
+});

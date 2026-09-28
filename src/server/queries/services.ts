@@ -281,3 +281,38 @@ export async function listServiceYears(householdId: string, vehicleId: string): 
     .orderBy(desc(year));
   return rows.map((r) => r.year);
 }
+
+/** Flat rows for CSV export: every service in the household, oldest first. */
+export async function exportServices(householdId: string) {
+  const records = await db
+    .select({
+      id: schema.serviceRecords.id,
+      date: schema.serviceRecords.date,
+      vehicle: schema.vehicles.name,
+      plate: schema.vehicles.plate,
+      odometer: schema.serviceRecords.odometer,
+      workshop: schema.serviceRecords.workshop,
+      totalCost: schema.serviceRecords.totalCost,
+      notes: schema.serviceRecords.notes,
+    })
+    .from(schema.serviceRecords)
+    .innerJoin(schema.vehicles, eq(schema.vehicles.id, schema.serviceRecords.vehicleId))
+    .where(eq(schema.vehicles.householdId, householdId))
+    .orderBy(asc(schema.serviceRecords.date), asc(schema.serviceRecords.createdAt));
+  if (!records.length) return [];
+  const items = await db
+    .select({
+      recordId: schema.serviceRecordItems.serviceRecordId,
+      label: schema.serviceRecordItems.label,
+      cost: schema.serviceRecordItems.cost,
+    })
+    .from(schema.serviceRecordItems)
+    .where(inArray(schema.serviceRecordItems.serviceRecordId, records.map((r) => r.id)))
+    .orderBy(asc(schema.serviceRecordItems.position));
+  const byRecord = new Map<string, string[]>();
+  for (const i of items) {
+    const text = i.cost !== null ? `${i.label} (${i.cost})` : i.label;
+    byRecord.set(i.recordId, [...(byRecord.get(i.recordId) ?? []), text]);
+  }
+  return records.map(({ id, ...r }) => ({ ...r, items: (byRecord.get(id) ?? []).join("; ") }));
+}

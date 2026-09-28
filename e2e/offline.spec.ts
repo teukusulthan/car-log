@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { signUp } from "./helpers";
 
 test("a tab opened in-app is available offline later", async ({ page, context }) => {
-  await signIn(page, `offline-${Date.now()}@example.com`);
-  await page.getByLabel("Your name").fill("Dewi");
-  await page.getByRole("button", { name: "Continue" }).click();
+  await signUp(page, `offline-${Date.now()}@example.com`, "Dewi");
   await page.getByLabel("Make").fill("Daihatsu");
   await page.getByLabel("Model").fill("Xenia");
   await page.getByLabel("Current odometer (km)").fill("3000");

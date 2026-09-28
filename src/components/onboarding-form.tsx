@@ -8,22 +8,18 @@ import { Input } from "@/components/ui/input";
 import { initialActionState } from "@/lib/form";
 import { createHouseholdAction } from "@/server/actions/household";
 
-export function OnboardingForm({ defaultName }: { defaultName: string }) {
+export function OnboardingForm() {
   const [state, action] = useActionState(createHouseholdAction, initialActionState);
   const e = state.fieldErrors ?? {};
   return (
     <form action={action} className="grid gap-4" noValidate>
       <FormMessage state={state} />
-      <FormField id="displayName" label="Your name" error={e.displayName} hint="Shown to family members you invite.">
-        <Input
-          {...fieldAria("displayName", e.displayName)}
-          autoComplete="given-name"
-          defaultValue={state.values?.displayName ?? defaultName}
-          placeholder="e.g. Sulthan"
-          required
-        />
-      </FormField>
-      <FormField id="householdName" label="Garage name" error={e.householdName}>
+      <FormField
+        id="householdName"
+        label="Name your garage"
+        error={e.householdName}
+        hint="Everyone you invite shares this garage — its cars, history and reminders."
+      >
         <Input
           {...fieldAria("householdName", e.householdName)}
           defaultValue={state.values?.householdName ?? "Our garage"}

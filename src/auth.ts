@@ -1,51 +1,39 @@
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import NextAuth from "next-auth";
-import { db, schema } from "@/db";
-import {
-  LOGIN_CODE_MAX_AGE_SECONDS,
-  generateLoginCode,
-  normalizeEmail,
-} from "@/lib/auth-utils";
-import { sendLoginEmail } from "@/server/login-email";
-import { hardenAdapter } from "@/server/verification-tokens";
+import NextAuth, { CredentialsSignin } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { verifyCredentials } from "@/server/credentials";
 
-export const EMAIL_PROVIDER_ID = "email";
+class AccountLockedError extends CredentialsSignin {
+  code = "locked";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Hardened: one live code per email, resend cooldown, and codes burn after 5 wrong guesses.
-  adapter: hardenAdapter(
-    DrizzleAdapter(db, {
-      usersTable: schema.users,
-      accountsTable: schema.accounts,
-      sessionsTable: schema.sessions,
-      verificationTokensTable: schema.verificationTokens,
-    }),
-  ),
   trustHost: true,
-  session: { strategy: "database", maxAge: 90 * 24 * 60 * 60 },
-  pages: {
-    signIn: "/login",
-    verifyRequest: "/login/check-email",
-    error: "/login/check-email",
-  },
+  // Credentials sign-in requires JWT sessions; the user row is re-read on every request (see server/access.ts).
+  session: { strategy: "jwt", maxAge: 90 * 24 * 60 * 60 },
+  pages: { signIn: "/login", error: "/login" },
   providers: [
-    {
-      id: EMAIL_PROVIDER_ID,
-      type: "email",
-      name: "Email",
-      from: "car-log",
-      maxAge: LOGIN_CODE_MAX_AGE_SECONDS,
-      options: {},
-      generateVerificationToken: generateLoginCode,
-      normalizeIdentifier: normalizeEmail,
-      async sendVerificationRequest({ identifier, token, url }) {
-        await sendLoginEmail({ to: identifier, code: token, url });
+    Credentials({
+      credentials: { email: { type: "email" }, password: { type: "password" } },
+      async authorize(credentials) {
+        const email = typeof credentials?.email === "string" ? credentials.email : "";
+        const password = typeof credentials?.password === "string" ? credentials.password : "";
+        if (!email || !password) return null;
+        const result = await verifyCredentials(email, password);
+        if (!result.ok) {
+          if (result.reason === "locked") throw new AccountLockedError();
+          return null;
+        }
+        return result.user;
       },
-    },
+    }),
   ],
   callbacks: {
-    session({ session, user }) {
-      session.user.id = user.id;
+    jwt({ token, user }) {
+      if (user?.id) token.sub = user.id;
+      return token;
+    },
+    session({ session, token }) {
+      if (token.sub) session.user.id = token.sub;
       return session;
     },
   },

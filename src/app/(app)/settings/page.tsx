@@ -2,6 +2,7 @@ import { ChevronRightIcon, DownloadIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { HouseholdNameForm } from "@/components/household-name-form";
 import { InviteButton } from "@/components/invite-button";
 import { MemberList } from "@/components/member-list";
@@ -81,6 +82,10 @@ export default async function SettingsPage() {
             <DownloadIcon /> Export service history (CSV)
           </a>
         </Button>
+      </Section>
+
+      <Section title="Password">
+        <ChangePasswordForm />
       </Section>
 
       <Section title="Account">

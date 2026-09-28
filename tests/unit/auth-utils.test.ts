@@ -1,17 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOGIN_CODE_LENGTH, generateLoginCode, normalizeEmail, safeCallbackPath } from "@/lib/auth-utils";
-
-describe("generateLoginCode", () => {
-  it("returns digits only, of the configured length", () => {
-    for (let i = 0; i < 50; i++) {
-      expect(generateLoginCode()).toMatch(new RegExp(`^\\d{${LOGIN_CODE_LENGTH}}$`));
-    }
-  });
-  it("does not repeat across calls", () => {
-    const codes = new Set(Array.from({ length: 200 }, generateLoginCode));
-    expect(codes.size).toBe(200);
-  });
-});
+import { normalizeEmail, safeCallbackPath } from "@/lib/auth-utils";
 
 describe("normalizeEmail", () => {
   it("trims and lowercases", () => {

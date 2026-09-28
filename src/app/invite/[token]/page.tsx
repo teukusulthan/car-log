@@ -26,10 +26,15 @@ export default async function InvitePage({ params }: PageProps<"/invite/[token]"
   const title = `Join “${invite.householdName}”`;
   if (!user) {
     return (
-      <AuthShell title={title} description="You've been invited to share car maintenance records. Sign in with your email to accept.">
-        <Button asChild size="lg">
-          <Link href={`/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`}>Sign in to join</Link>
-        </Button>
+      <AuthShell title={title} description="You've been invited to share car maintenance records. Create an account or log in to accept.">
+        <div className="grid gap-3">
+          <Button asChild size="lg">
+            <Link href={`/signup?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`}>Create account to join</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href={`/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`}>I already have an account</Link>
+          </Button>
+        </div>
       </AuthShell>
     );
   }

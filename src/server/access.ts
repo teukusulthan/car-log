@@ -15,11 +15,16 @@ export const VEHICLE_COOKIE = "cl_vehicle";
 export type SessionUser = { id: string; email: string; name: string | null };
 export type Membership = { user: SessionUser; householdId: string; role: MemberRole };
 
+/** The signed-in user, read fresh from the database (a deleted account is signed out immediately). */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const session = await auth();
-  const user = session?.user;
-  if (!user?.id || !user.email) return null;
-  return { id: user.id, email: user.email, name: user.name ?? null };
+  const id = session?.user?.id;
+  if (!id) return null;
+  const [user] = await db
+    .select({ id: schema.users.id, email: schema.users.email, name: schema.users.name })
+    .from(schema.users)
+    .where(eq(schema.users.id, id));
+  return user ?? null;
 });
 
 export async function requireUser(): Promise<SessionUser> {

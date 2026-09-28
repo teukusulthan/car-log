@@ -2,7 +2,7 @@
 
 A mobile-only PWA for a household to track car maintenance: service history with receipt photos, date/km-based reminders, insurance and STNK renewals, spending, and daily push notifications. It's built for iPhones installed to the Home Screen.
 
-- **Stack:** Next.js 16 (App Router, Server Actions), Tailwind 4 + shadcn/ui, Drizzle + Postgres (Neon), Auth.js v5 (email code), Cloudflare R2, Web Push, Vercel Cron.
+- **Stack:** Next.js 16 (App Router, Server Actions), Tailwind 4 + shadcn/ui, Drizzle + Postgres (Neon), Auth.js v5 (email + password), Cloudflare R2, Web Push, Vercel Cron.
 - **Design docs:** `docs/superpowers/specs/2026-09-28-car-log-design.md` and `docs/superpowers/plans/2026-09-28-car-log-mvp.md`.
 
 ## Local development
@@ -16,7 +16,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-- **Sign-in without email:** leave `RESEND_API_KEY` empty. The 8-digit sign-in code is printed in the terminal and written to `.dev/last-login.json`.
+- **Accounts:** open `/signup` to create an account with email and password. After 5 wrong passwords an account is locked for 15 minutes.
 - **Photos without R2:** leave the `R2_*` variables empty. Uploads are saved under `.data/uploads/`.
 - **Service worker:** it only registers in production builds. Set `NEXT_PUBLIC_ENABLE_SW=1` to test it under `pnpm dev`.
 
@@ -31,32 +31,29 @@ pnpm dev
 
 The e2e tests run in Chromium with iPhone emulation. If WebKit's system libraries are installed (`pnpm exec playwright install-deps webkit`), switch `defaultBrowserType` in `playwright.config.ts` to `"webkit"`.
 
-## Deploying (Vercel + Neon + R2 + Resend)
+## Deploying (Vercel + Neon + R2)
 
 1. **Database:** create a Neon project and copy the **pooled** connection string into `DATABASE_URL`. Run `DATABASE_URL=… pnpm db:migrate` once, and again after every schema change.
-2. **Email:** create a Resend API key and verify your sending domain. Set `RESEND_API_KEY` and `EMAIL_FROM` (for example `car-log <login@yourdomain.com>`).
-3. **Photos:**
+2. **Photos:**
    - Create a **private** R2 bucket.
    - Create an API token with Object Read & Write access to that bucket.
    - Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET`.
-4. **Push:**
+3. **Push:**
    - Run `pnpm dlx web-push generate-vapid-keys`.
    - Set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
    - Set `VAPID_SUBJECT` to a `mailto:` address you own.
-5. **Auth and cron:**
+4. **Auth and cron:**
    - Set `AUTH_SECRET` (`openssl rand -base64 32`).
    - Set `CRON_SECRET` to a long random string. Vercel sends it to `/api/cron/reminders`.
-6. **Deploy on Vercel.** `vercel.json` schedules the reminder job daily at 00:00 UTC (07:00 WIB). To trigger it by hand:
+5. **Deploy on Vercel.** `vercel.json` schedules the reminder job daily at 00:00 UTC (07:00 WIB). To trigger it by hand:
    ```bash
    curl -H "Authorization: Bearer $CRON_SECRET" https://your-app.vercel.app/api/cron/reminders
    ```
 
-Never set `LOGIN_EMAIL_SINK` in production. It exists only so local e2e runs of a production build can read sign-in codes.
-
 ## Installing on iPhone
 
 1. Open the site in **Safari**, tap **Share**, then **Add to Home Screen**.
-2. Open car-log from the Home Screen icon and sign in with your email code. Installed apps keep their own login, separate from Safari.
+2. Open car-log from the Home Screen icon and log in with your email and password. Installed apps keep their own login, separate from Safari.
 3. Tap **Turn on reminders** (Home or Settings) and allow notifications. Use **Send a test** in Settings to check it works.
 4. To share with family: go to **Settings → Invite family member**. The link works once and expires after 7 days.
 

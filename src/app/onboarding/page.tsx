@@ -11,10 +11,10 @@ export default async function OnboardingPage() {
   if (await getMembership(user.id)) redirect("/");
   return (
     <AuthShell
-      title="Welcome to car-log"
-      description="Set up your garage. You can invite your family to it later so everyone sees the same history."
+      title={user.name ? `Welcome, ${user.name.split(" ")[0]}` : "Welcome to car-log"}
+      description="First, set up your garage. Next you'll add your car."
     >
-      <OnboardingForm defaultName={user.name ?? ""} />
+      <OnboardingForm />
     </AuthShell>
   );
 }

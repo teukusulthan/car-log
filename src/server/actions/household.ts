@@ -16,7 +16,6 @@ import {
 } from "@/server/queries/households";
 
 const onboardingSchema = z.object({
-  displayName: z.string().trim().min(1, "Tell us what to call you").max(60),
   householdName: z.string().trim().min(1, "Give your garage a name").max(60),
 });
 
@@ -24,10 +23,7 @@ export async function createHouseholdAction(_prev: ActionState, formData: FormDa
   const user = await requireUser();
   const parsed = parseForm(onboardingSchema, formData);
   if (!parsed.success) return parsed.state;
-  if (!(await getMembership(user.id))) {
-    await db.update(schema.users).set({ name: parsed.data.displayName }).where(eq(schema.users.id, user.id));
-    await createHousehold(user.id, parsed.data.householdName);
-  }
+  if (!(await getMembership(user.id))) await createHousehold(user.id, parsed.data.householdName);
   redirect("/vehicles/new?first=1");
 }
 

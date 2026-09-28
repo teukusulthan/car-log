@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { jakartaToday, signIn } from "./helpers";
+import { jakartaToday, signUp } from "./helpers";
 
 async function newCar(page: import("@playwright/test").Page, km: string) {
-  await signIn(page, `forms-${Date.now()}@example.com`);
-  await page.getByLabel("Your name").fill("Rina");
-  await page.getByRole("button", { name: "Continue" }).click();
+  await signUp(page, `forms-${Date.now()}@example.com`, "Rina");
   await page.getByLabel("Make").fill("Suzuki");
   await page.getByLabel("Model").fill("Ertiga");
   await page.getByLabel("Current odometer (km)").fill(km);
@@ -34,6 +32,7 @@ test("the confirm prompt keeps what the user typed and saves exactly that", asyn
 test("photos picked before a validation error are still saved", async ({ page }) => {
   await newCar(page, "1000");
   await page.goto("/log");
+  await page.waitForLoadState("networkidle"); // make sure the photo picker is hydrated
   await page.locator("input[type=file][name=photos]").setInputFiles("e2e/fixtures-receipt.jpg");
   await expect(page.getByRole("img", { name: "New photo 1" })).toBeVisible();
   await page.getByLabel("Notes").fill("Receipt first");

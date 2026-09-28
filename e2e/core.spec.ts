@@ -1,14 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { jakartaToday, signIn } from "./helpers";
+import { jakartaToday, signUp } from "./helpers";
 
 test("a new user tracks a car from sign-up to reminders", async ({ page }) => {
-  await signIn(page, `e2e-${Date.now()}@example.com`);
-
-  // Onboarding
-  await expect(page).toHaveURL(/onboarding/);
-  await page.getByLabel("Your name").fill("Budi");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page).toHaveURL(/vehicles\/new/);
+  await signUp(page, `e2e-${Date.now()}@example.com`);
   await page.getByLabel("Make").fill("Toyota");
   await page.getByLabel("Model").fill("Avanza");
   await expect(page.getByLabel("Nickname")).toHaveValue("Toyota Avanza");
@@ -65,9 +59,7 @@ test("pages require sign-in and other households' records are not found", async 
   await page.goto("/history");
   await expect(page).toHaveURL(/\/login/);
 
-  await signIn(page, `owner-${Date.now()}@example.com`);
-  await page.getByLabel("Your name").fill("Owner");
-  await page.getByRole("button", { name: "Continue" }).click();
+  await signUp(page, `owner-${Date.now()}@example.com`, "Owner");
   await page.getByLabel("Make").fill("Honda");
   await page.getByLabel("Model").fill("Brio");
   await page.getByLabel("Current odometer (km)").fill("100");
@@ -83,10 +75,7 @@ test("pages require sign-in and other households' records are not found", async 
   const recordUrl = page.url();
 
   const other = await browser.newPage();
-  await signIn(other, `intruder-${Date.now()}@example.com`);
-  await other.getByLabel("Your name").fill("Intruder");
-  await other.getByRole("button", { name: "Continue" }).click();
-  await expect(other.getByRole("heading", { name: "Add your car" })).toBeVisible();
+  await signUp(other, `intruder-${Date.now()}@example.com`, "Intruder");
   // The not-found UI renders (status may be 200 once streaming has started) and nothing from the record leaks.
   await other.goto(recordUrl);
   await expect(other.getByRole("heading", { name: "Not found" })).toBeVisible();

@@ -1,16 +1,4 @@
-import { randomInt } from "node:crypto";
 import { z } from "zod";
-
-import { LOGIN_CODE_LENGTH } from "./auth-constants";
-
-export { LOGIN_CODE_LENGTH, LOGIN_CODE_MAX_AGE_SECONDS } from "./auth-constants";
-
-/** Cryptographically random numeric code; digits keep the iOS numeric keypad and Mail autofill. */
-export function generateLoginCode(): string {
-  return randomInt(0, 10 ** LOGIN_CODE_LENGTH)
-    .toString()
-    .padStart(LOGIN_CODE_LENGTH, "0");
-}
 
 const emailSchema = z.email();
 

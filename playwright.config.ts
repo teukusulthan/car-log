@@ -6,7 +6,7 @@ const DATABASE_URL = process.env.E2E_DATABASE_URL ?? "postgres://carlog:carlog_l
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: false,
-  workers: 1, // sign-in codes are read from a shared file
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
@@ -27,6 +27,6 @@ export default defineConfig({
     // Always build and serve the current code; a leftover server would silently test stale code.
     reuseExistingServer: false,
     timeout: 240_000,
-    env: { DATABASE_URL, LOGIN_EMAIL_SINK: "file" },
+    env: { DATABASE_URL },
   },
 });

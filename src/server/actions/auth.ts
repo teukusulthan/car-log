@@ -1,66 +1,94 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { AuthError, CredentialsSignin } from "next-auth";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { EMAIL_PROVIDER_ID, signIn, signOut } from "@/auth";
-import { LOGIN_CODE_MAX_AGE_SECONDS, normalizeEmail, safeCallbackPath } from "@/lib/auth-utils";
+import { signIn, signOut } from "@/auth";
+import { safeCallbackPath } from "@/lib/auth-utils";
 import { type ActionState, parseForm } from "@/lib/form";
-import { LOGIN_COOKIE, type PendingLogin } from "@/server/login-state";
-import { TooManyCodeRequestsError, codeIssuedRecently } from "@/server/verification-tokens";
+import { requireUser } from "@/server/access";
+import { EmailTakenError, MIN_PASSWORD_LENGTH, changePassword, registerUser } from "@/server/credentials";
 
+const email = z.string().trim().min(1, "Enter your email").pipe(z.email("That doesn't look like an email address"));
+const newPassword = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `Use at least ${MIN_PASSWORD_LENGTH} characters`)
+  .max(200, "That password is too long");
 
 const loginSchema = z.object({
-  email: z.string().trim().min(1, "Enter your email").pipe(z.email("That doesn't look like an email address")),
+  email,
+  password: z.string().min(1, "Enter your password"),
   callbackUrl: z.string().optional(),
 });
-export async function requestLoginCode(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = parseForm(loginSchema, formData);
-  if (!parsed.success) return parsed.state;
-  const email = normalizeEmail(parsed.data.email);
-  const callbackUrl = safeCallbackPath(parsed.data.callbackUrl);
 
-  if (await codeIssuedRecently(email)) {
-    await rememberPendingLogin({ email, callbackUrl });
-    redirect("/login/check-email?resent=wait");
-  }
+const signupSchema = z.object({
+  name: z.string().trim().min(1, "Tell us what to call you").max(60),
+  email,
+  password: newPassword,
+  callbackUrl: z.string().optional(),
+});
 
-  try {
-    await signIn(EMAIL_PROVIDER_ID, { email, redirect: false, redirectTo: callbackUrl });
-  } catch (error) {
-    if (isCooldownError(error)) {
-      await rememberPendingLogin({ email, callbackUrl });
-      redirect("/login/check-email?resent=wait");
-    }
-    console.error("[auth] failed to send login code", error);
-    return {
-      message: "We couldn't send the email right now. Please try again in a minute.",
-      values: { email },
-    };
-  }
-  await rememberPendingLogin({ email, callbackUrl });
-  redirect("/login/check-email");
+/** Never echo passwords back into the form. */
+const PASSWORD_FIELDS = new Set(["password", "currentPassword", "newPassword"]);
+function withoutPasswords(state: ActionState): ActionState {
+  if (!state.values) return state;
+  const values = Object.fromEntries(Object.entries(state.values).filter(([key]) => !PASSWORD_FIELDS.has(key)));
+  return { ...state, values };
 }
 
-async function rememberPendingLogin(pending: PendingLogin) {
-  (await cookies()).set(LOGIN_COOKIE, JSON.stringify(pending), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: LOGIN_CODE_MAX_AGE_SECONDS + 5 * 60,
-    path: "/",
-  });
+async function signInOrError(emailValue: string, password: string, redirectTo: string): Promise<ActionState> {
+  try {
+    await signIn("credentials", { email: emailValue, password, redirectTo });
+  } catch (error) {
+    // A successful sign-in throws Next's redirect; let it through.
+    if (!(error instanceof AuthError)) throw error;
+    const locked = error instanceof CredentialsSignin && error.code === "locked";
+    return {
+      message: locked
+        ? "Too many wrong attempts. For your security, this account is locked for 15 minutes."
+        : "Email or password is incorrect.",
+      values: { email: emailValue },
+    };
+  }
+  return {};
+}
+
+export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = parseForm(loginSchema, formData);
+  if (!parsed.success) return withoutPasswords(parsed.state);
+  const { email: e, password, callbackUrl } = parsed.data;
+  return signInOrError(e, password, safeCallbackPath(callbackUrl));
+}
+
+export async function signupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = parseForm(signupSchema, formData);
+  if (!parsed.success) return withoutPasswords(parsed.state);
+  const { name, email: e, password, callbackUrl } = parsed.data;
+  try {
+    await registerUser({ email: e, password, name });
+  } catch (error) {
+    if (error instanceof EmailTakenError) {
+      return { fieldErrors: { email: "An account with this email already exists. Log in instead." }, values: { name, email: e } };
+    }
+    throw error;
+  }
+  // New accounts go through onboarding unless they came from an invite link.
+  const target = safeCallbackPath(callbackUrl);
+  return signInOrError(e, password, target === "/" ? "/onboarding" : target);
+}
+
+const changePasswordSchema = z.object({ currentPassword: z.string().min(1, "Enter your current password"), newPassword });
+
+export async function changePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const parsed = parseForm(changePasswordSchema, formData);
+  if (!parsed.success) return withoutPasswords(parsed.state);
+  const ok = await changePassword(user.id, parsed.data.currentPassword, parsed.data.newPassword);
+  if (!ok) return { fieldErrors: { currentPassword: "That's not your current password" } };
+  revalidatePath("/settings");
+  return { ok: true, message: "Password changed" };
 }
 
 export async function signOutAction() {
   await signOut({ redirectTo: "/login" });
-}
-
-/** Auth.js may wrap adapter errors; look through the cause chain. */
-function isCooldownError(error: unknown): boolean {
-  for (let e = error; e; e = (e as { cause?: unknown }).cause) {
-    if (e instanceof TooManyCodeRequestsError || (e as Error).name === "TooManyCodeRequestsError") return true;
-    if (typeof e !== "object") break;
-  }
-  return false;
 }

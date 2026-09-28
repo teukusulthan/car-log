@@ -14,9 +14,6 @@ const TABLES = [
   "invites",
   "household_members",
   "households",
-  '"session"',
-  '"account"',
-  '"verificationToken"',
   '"user"',
 ];
 
@@ -31,7 +28,8 @@ export async function closeDb() {
 let seq = 0;
 
 export async function makeUser(email = `user${++seq}@example.com`) {
-  const [user] = await db.insert(schema.users).values({ email }).returning();
+  // Not a valid hash on purpose: factory users never log in, and real hashing is slow.
+  const [user] = await db.insert(schema.users).values({ email, passwordHash: "scrypt$factory" }).returning();
   return user;
 }
 

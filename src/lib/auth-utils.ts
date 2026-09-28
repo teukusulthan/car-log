@@ -21,6 +21,14 @@ export function normalizeEmail(input: string): string {
 
 /** Only allow redirects to paths on this site. */
 export function safeCallbackPath(value: string | null | undefined): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/";
-  return value;
+  if (!value || !value.startsWith("/")) return "/";
+  // Resolve the way a browser would (it strips tabs/newlines and treats "\\" as "/"); keep it only if it stays on our origin.
+  const base = "http://car-log.invalid";
+  try {
+    const url = new URL(value, base);
+    if (url.origin !== base || /[\t\n\r\\]/.test(value)) return "/";
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return "/";
+  }
 }

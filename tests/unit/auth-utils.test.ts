@@ -32,4 +32,12 @@ describe("safeCallbackPath", () => {
     expect(safeCallbackPath("//evil.com")).toBe("/");
     expect(safeCallbackPath(undefined)).toBe("/");
   });
+  it("rejects paths that browsers resolve to another origin", () => {
+    expect(safeCallbackPath("/\t/evil.com")).toBe("/");
+    expect(safeCallbackPath("/\n/evil.com")).toBe("/");
+    expect(safeCallbackPath("/\\evil.com")).toBe("/");
+  });
+  it("keeps the query string", () => {
+    expect(safeCallbackPath("/log?item=abc")).toBe("/log?item=abc");
+  });
 });

@@ -2,6 +2,8 @@ import { addDays, addMonths, diffDays, type ISODate } from "./dates";
 
 export const DUE_SOON_DAYS = 14;
 export const DUE_SOON_KM = 500;
+/** Ask for a fresh odometer reading when the last one is older than this. */
+export const STALE_READING_DAYS = 14;
 
 export type DueStatus = "overdue" | "due_soon" | "ok";
 

@@ -59,3 +59,13 @@ describe("describeDue", () => {
     expect(describeDue(base)).toBe("No schedule");
   });
 });
+
+describe("describeAgo", () => {
+  it("describes past days", async () => {
+    const { describeAgo } = await import("@/lib/format");
+    expect(describeAgo(0)).toBe("today");
+    expect(describeAgo(1)).toBe("yesterday");
+    expect(describeAgo(9)).toBe("9 days ago");
+    expect(describeAgo(70)).toBe("2 months ago");
+  });
+});

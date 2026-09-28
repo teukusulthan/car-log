@@ -78,3 +78,10 @@ export function describeDue(due: DueResult, today?: ISODate): string {
   if (daysLeft !== null) limits.push(span(daysLeft));
   return limits.length ? `In ${limits.join(" or ")}` : "No schedule";
 }
+
+/** "today", "yesterday", "9 days ago", "2 months ago". */
+export function describeAgo(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${span(days)} ago`;
+}

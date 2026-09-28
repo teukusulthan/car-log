@@ -61,3 +61,11 @@ export function orNotFound<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) notFound();
   return value;
 }
+
+/** Membership plus the vehicle being viewed; sends households without a car to the add-car screen. */
+export async function requireCurrentVehicle() {
+  const membership = await requireMembership();
+  const vehicleId = await getCurrentVehicleId(membership.householdId);
+  if (!vehicleId) redirect("/vehicles/new?first=1");
+  return { ...membership, vehicleId };
+}

@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { isoDate, kmField, moneyField, optionalInt, optionalText } from "./validators";
 
-const currentYear = new Date().getFullYear();
-
 export const vehicleDetailsSchema = z.object({
   name: z.string().trim().min(1, "Give it a name").max(40),
   make: z.string().trim().min(1, "Make is required").max(40),
   model: z.string().trim().min(1, "Model is required").max(40),
   year: z.preprocess(
     (v) => (v === "" || v === undefined ? null : Number(v)),
-    z.number().int().min(1950, "Year looks wrong").max(currentYear + 1, "Year looks wrong").nullable(),
+    z
+      .number()
+      .int()
+      .min(1950, "Year looks wrong")
+      .refine((y) => y <= new Date().getFullYear() + 1, "Year looks wrong")
+      .nullable(),
   ),
   plate: optionalText(15).transform((v) => v?.toUpperCase() ?? null),
 });

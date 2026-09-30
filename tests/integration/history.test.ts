@@ -81,3 +81,18 @@ describe("exportServices", () => {
     ]);
   });
 });
+
+describe("costSummary when item costs exceed the bill", () => {
+  it("scales item costs down so the breakdown adds up to what was paid", async () => {
+    const h = await makeHousehold();
+    // Items say 120k but the discounted bill was 100k.
+    await add(h, "2026-03-01", 100000, [{ label: "Engine oil", cost: 80000 }, { label: "Oil filter", cost: 40000 }]);
+    const s = await costSummary(h.householdId, h.vehicleId, 2026);
+    expect(s.total).toBe(100000);
+    expect(s.byItem.reduce((sum, i) => sum + i.total, 0)).toBe(100000);
+    expect(s.byItem).toEqual([
+      { label: "Engine oil", total: 66667 },
+      { label: "Oil filter", total: 33333 },
+    ]);
+  });
+});

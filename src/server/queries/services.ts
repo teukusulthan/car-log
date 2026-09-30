@@ -249,15 +249,23 @@ export async function costSummary(householdId: string, vehicleId: string, year: 
       })
       .from(schema.serviceRecordItems)
       .where(inArray(schema.serviceRecordItems.serviceRecordId, records.map((r) => r.id)));
-    const itemized = new Map<string, number>();
+    const costsByRecord = new Map<string, { label: string; cost: number }[]>();
     for (const i of items) {
-      if (!i.cost) continue;
-      byItem.set(i.label, (byItem.get(i.label) ?? 0) + i.cost);
-      itemized.set(i.recordId, (itemized.get(i.recordId) ?? 0) + i.cost);
+      if (i.cost) costsByRecord.set(i.recordId, [...(costsByRecord.get(i.recordId) ?? []), { label: i.label, cost: i.cost }]);
     }
     for (const r of records) {
       byMonth[Number(r.date.slice(5, 7)) - 1] += r.totalCost;
-      const rest = r.totalCost - (itemized.get(r.id) ?? 0);
+      const costs = costsByRecord.get(r.id) ?? [];
+      const itemized = costs.reduce((sum, c) => sum + c.cost, 0);
+      // A discounted bill can be less than the item prices; scale them so the breakdown matches what was paid.
+      const scale = itemized > r.totalCost ? r.totalCost / itemized : 1;
+      let assigned = 0;
+      costs.forEach((c, index) => {
+        const share = index === costs.length - 1 && scale < 1 ? r.totalCost - assigned : Math.round(c.cost * scale);
+        assigned += share;
+        byItem.set(c.label, (byItem.get(c.label) ?? 0) + share);
+      });
+      const rest = r.totalCost - assigned;
       if (rest > 0) byItem.set(OTHER_LABEL, (byItem.get(OTHER_LABEL) ?? 0) + rest);
     }
   }

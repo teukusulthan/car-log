@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 import { requireMembership } from "@/server/access";
 import { pushConfigured, webPushSender } from "@/server/push";
 import { removeSubscription, saveSubscription } from "@/server/queries/reminders";
@@ -9,7 +10,7 @@ import { db, schema } from "@/db";
 import { and, eq } from "drizzle-orm";
 
 const subscriptionSchema = z.object({
-  endpoint: z.url().max(1000),
+  endpoint: z.url().max(1000).refine(isAllowedPushEndpoint, "Unsupported push service"),
   keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
 });
 

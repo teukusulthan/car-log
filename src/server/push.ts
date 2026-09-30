@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { env } from "@/env";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 import type { PushSender } from "@/server/queries/reminders";
 
 let configured = false;
@@ -12,6 +13,8 @@ export function pushConfigured() {
 /** Delivers one payload with Web Push (VAPID). 404/410 from the push service means the subscription is gone. */
 export const webPushSender: PushSender = async (sub, payload) => {
   if (!pushConfigured()) throw new Error("VAPID keys are not configured");
+  // Never POST to a host that isn't a real push service; treating it as gone removes the row.
+  if (!isAllowedPushEndpoint(sub.endpoint)) return { ok: false, gone: true };
   if (!configured) {
     webpush.setVapidDetails(env.VAPID_SUBJECT, env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, env.VAPID_PRIVATE_KEY!);
     configured = true;

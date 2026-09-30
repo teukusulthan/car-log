@@ -156,3 +156,13 @@ describe("odometer corrections", () => {
     await expect(deleteReading(a.householdId, serviceReading.id)).rejects.toThrow(/service/);
   });
 });
+
+describe("saveSchedule return value", () => {
+  it("returns the saved items with their ids, so saving again updates instead of re-creating", async () => {
+    const { householdId, vehicleId } = await makeHousehold();
+    const first = await saveSchedule(householdId, vehicleId, [{ name: "Wiper blades", intervalKm: null, intervalMonths: 12 }]);
+    expect(first).toEqual([expect.objectContaining({ name: "Wiper blades", intervalMonths: 12, id: expect.any(String) })]);
+    const second = await saveSchedule(householdId, vehicleId, [{ ...first[0], intervalMonths: 6 }]);
+    expect(second[0].id).toBe(first[0].id);
+  });
+});

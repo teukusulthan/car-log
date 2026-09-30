@@ -66,7 +66,10 @@ export async function deleteVehicleAction(vehicleId: string) {
 export async function saveScheduleAction(
   vehicleId: string,
   items: unknown,
-): Promise<{ ok: true } | { ok: false; message: string; itemErrors?: Record<number, string> }> {
+): Promise<
+  | { ok: true; items: { id: string; name: string; intervalKm: number | null; intervalMonths: number | null }[] }
+  | { ok: false; message: string; itemErrors?: Record<number, string> }
+> {
   const { householdId } = await requireMembership();
   const parsed = scheduleSchema.safeParse(items);
   if (!parsed.success) {
@@ -77,9 +80,9 @@ export async function saveScheduleAction(
     }
     return { ok: false, message: "Some items need fixing.", itemErrors };
   }
-  await saveSchedule(householdId, vehicleId, parsed.data);
+  const saved = await saveSchedule(householdId, vehicleId, parsed.data);
   revalidatePath("/", "layout");
-  return { ok: true };
+  return { ok: true, items: saved.map(({ id, name, intervalKm, intervalMonths }) => ({ id, name, intervalKm, intervalMonths })) };
 }
 
 export type OdometerState = ActionState & { needsConfirm?: boolean };

@@ -116,9 +116,12 @@ export async function deleteVehicle(householdId: string, vehicleId: string): Pro
   });
 }
 
-/** Replaces the vehicle's schedule with `items`: updates matching ids, inserts new ones, deletes the rest. */
-export async function saveSchedule(householdId: string, vehicleId: string, items: ScheduleItemInput[]) {
-  await db.transaction(async (tx) => {
+/**
+ * Replaces the vehicle's schedule with `items`: updates matching ids, inserts new ones, deletes the rest.
+ * Returns the saved items (with ids) in order.
+ */
+export async function saveSchedule(householdId: string, vehicleId: string, items: ScheduleItemInput[]): Promise<MaintenanceItem[]> {
+  return db.transaction(async (tx) => {
     await assertVehicleInHousehold(householdId, vehicleId, tx);
     const existing = await tx
       .select({ id: schema.maintenanceItems.id })
@@ -135,14 +138,16 @@ export async function saveSchedule(householdId: string, vehicleId: string, items
           : eq(schema.maintenanceItems.vehicleId, vehicleId),
       );
 
+    const saved: MaintenanceItem[] = [];
     for (const [sort, item] of items.entries()) {
       const values = { name: item.name, intervalKm: item.intervalKm, intervalMonths: item.intervalMonths, sort };
-      if (item.id && ownIds.has(item.id)) {
-        await tx.update(schema.maintenanceItems).set(values).where(eq(schema.maintenanceItems.id, item.id));
-      } else {
-        await tx.insert(schema.maintenanceItems).values({ ...values, vehicleId });
-      }
+      const [row] =
+        item.id && ownIds.has(item.id)
+          ? await tx.update(schema.maintenanceItems).set(values).where(eq(schema.maintenanceItems.id, item.id)).returning()
+          : await tx.insert(schema.maintenanceItems).values({ ...values, vehicleId }).returning();
+      saved.push(row);
     }
+    return saved;
   });
 }
 

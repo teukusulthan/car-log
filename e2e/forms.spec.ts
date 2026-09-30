@@ -47,3 +47,23 @@ test("photos picked before a validation error are still saved", async ({ page })
   await page.getByRole("link", { name: /Air filter/ }).click();
   await expect(page.getByRole("img", { name: "Photo 1" })).toBeVisible();
 });
+
+test("saving the schedule twice keeps a newly added item as one item", async ({ page }) => {
+  await newCar(page, "1000");
+  await page.goto("/settings");
+  await page.getByRole("link", { name: /Suzuki Ertiga/ }).click();
+  await page.getByRole("button", { name: "Add item" }).click();
+  await page.getByPlaceholder("e.g. Wiper blades").last().fill("Wiper blades");
+  await page.getByRole("textbox", { name: "Every (months)" }).last().fill("12");
+  await page.getByRole("button", { name: "Save schedule" }).click();
+  await expect(page.getByText("Schedule saved")).toBeVisible();
+
+  await page.getByText("Wiper blades", { exact: true }).click(); // expand the saved row again
+  await page.getByRole("textbox", { name: "Every (months)" }).last().fill("6");
+  await page.getByRole("button", { name: "Save schedule" }).click();
+  await expect(page.getByText("Schedule saved").first()).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("Wiper blades", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("Every 6 months")).toBeVisible();
+});

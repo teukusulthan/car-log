@@ -11,19 +11,19 @@ import { saveScheduleAction } from "@/server/actions/vehicles";
 type Row = { key: string; id?: string; name: string; intervalKm: string; intervalMonths: string };
 export type ScheduleEditorItem = { id: string; name: string; intervalKm: number | null; intervalMonths: number | null };
 
+const toRow = (i: ScheduleEditorItem): Row => ({
+  key: i.id,
+  id: i.id,
+  name: i.name,
+  intervalKm: i.intervalKm?.toString() ?? "",
+  intervalMonths: i.intervalMonths?.toString() ?? "",
+});
+
 let seq = 0;
 const newKey = () => `new-${++seq}`;
 
 export function ScheduleEditor({ vehicleId, items }: { vehicleId: string; items: ScheduleEditorItem[] }) {
-  const [rows, setRows] = useState<Row[]>(() =>
-    items.map((i) => ({
-      key: i.id,
-      id: i.id,
-      name: i.name,
-      intervalKm: i.intervalKm?.toString() ?? "",
-      intervalMonths: i.intervalMonths?.toString() ?? "",
-    })),
-  );
+  const [rows, setRows] = useState<Row[]>(() => items.map(toRow));
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -40,6 +40,8 @@ export function ScheduleEditor({ vehicleId, items }: { vehicleId: string; items:
         rows.map(({ id, name, intervalKm, intervalMonths }) => ({ id, name, intervalKm, intervalMonths })),
       );
       if (result.ok) {
+        // Re-seed from what was saved so new rows get their ids (a second save updates them).
+        setRows(result.items.map(toRow));
         setErrors({});
         setDirty(false);
         toast.success("Schedule saved");

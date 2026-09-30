@@ -129,3 +129,26 @@ describe("runReminders", () => {
     expect(toB.join()).not.toContain("Car insurance");
   });
 });
+
+describe("runReminders when every device disappears mid-run", () => {
+  it("doesn't mark later reminders as sent, so a re-subscribed device gets them all", async () => {
+    const h = await householdWithOverdueOil();
+    await createDocument(h.householdId, {
+      vehicleId: h.vehicleId,
+      type: "insurance",
+      title: "Car insurance",
+      expiresOn: "2026-09-25",
+      remindDaysBefore: 30,
+    });
+    await saveSubscription(h.userId, sub(1));
+    gone.add(sub(1).endpoint);
+    await runReminders(NOW, sender);
+
+    gone.clear();
+    await saveSubscription(h.userId, sub(3));
+    await runReminders(NOW, sender);
+    const titles = sent.map((s) => s.payload.title);
+    expect(titles).toContain("Car insurance expires in 5 days");
+    expect(titles.some((t) => t.includes("Veloz"))).toBe(true);
+  });
+});

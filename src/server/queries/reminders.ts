@@ -85,8 +85,10 @@ export async function runReminders(now: Date, send: PushSender) {
     let devices = subs;
     try {
       for (const reminder of await remindersFor(householdId, today)) {
+        // Every device may have turned out to be gone; stop before claiming keys nobody will receive.
+        if (!devices.length) break;
         const fresh = await claimKeys(householdId, reminder.keys);
-        if (!fresh.length || !devices.length) continue;
+        if (!fresh.length) continue;
 
         const payload = JSON.stringify({ title: reminder.title, body: reminder.body, url: reminder.url, tag: reminder.tag });
         let delivered = 0;

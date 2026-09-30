@@ -29,3 +29,18 @@ test("signing up twice with the same email is refused", async ({ page, browser }
   await expect(other.getByText(/already exists/)).toBeVisible();
   await other.close();
 });
+
+test("a deep link opened while signed out lands on that screen after logging in", async ({ page }) => {
+  const email = `deeplink-${Date.now()}@example.com`;
+  await signUp(page, email, "Dian");
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login/);
+
+  await page.goto("/documents?from=push");
+  await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fdocuments%3Ffrom%3Dpush$/);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/documents\?from=push$/);
+});

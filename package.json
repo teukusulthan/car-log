@@ -15,7 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "icons": "tsx scripts/generate-icons.ts"
+    "icons": "tsx scripts/generate-icons.ts",
+    "build:vercel": "tsx src/db/migrate.ts --on-build && next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",
